@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 
-import Navbar       from '@/components/Navbar';
+import Sidebar      from '@/components/Sidebar';
 import Login        from '@/pages/Login';
 import Predictions  from '@/pages/Predictions';
 import Groups       from '@/pages/Groups';
@@ -10,9 +10,8 @@ import Leaderboard  from '@/pages/Leaderboard';
 import Admin        from '@/pages/Admin';
 
 export default function App() {
-  const [user, setUser]   = useState(null);
+  const [user, setUser]     = useState(null);
   const [loaded, setLoaded] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     api.get('/api/auth/me')
@@ -21,7 +20,6 @@ export default function App() {
       .finally(() => setLoaded(true));
   }, []);
 
-  // Dark mode init
   useEffect(() => {
     const dark = localStorage.getItem('prode_dark') === 'true';
     document.documentElement.classList.toggle('dark', dark);
@@ -29,7 +27,6 @@ export default function App() {
 
   if (!loaded) return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>;
 
-  // Unauthenticated → only show login
   if (!user) {
     return (
       <Routes>
@@ -40,9 +37,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar user={user} onLogout={() => setUser(null)} />
-      <main className="container py-6">
+    <div className="flex min-h-screen bg-background">
+      <Sidebar user={user} onLogout={() => setUser(null)} />
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
         <Routes>
           <Route path="/"            element={<Navigate to="/predictions" replace />} />
           <Route path="/predictions" element={<Predictions />} />
