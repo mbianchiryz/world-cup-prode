@@ -63,11 +63,11 @@ function MatchCard({ match, pred, onSave }) {
               </>
             ) : canEdit ? (
               <>
-                <Input className="w-12 h-10 text-center text-lg font-bold" type="number" min="0" max="20"
+                <Input className="w-12 h-10 px-1 text-center text-lg font-bold leading-none" type="number" min="0" max="20"
                   value={h} onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
                 <span className="text-muted-foreground px-1">–</span>
-                <Input className="w-12 h-10 text-center text-lg font-bold" type="number" min="0" max="20"
+                <Input className="w-12 h-10 px-1 text-center text-lg font-bold leading-none" type="number" min="0" max="20"
                   value={a} onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
               </>

@@ -102,10 +102,10 @@ export default function Admin() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 justify-center">
-                            <Input className="w-12 h-8 text-center" type="number" min="0" max="20"
+                            <Input className="w-12 h-8 px-1 text-center leading-none" type="number" min="0" max="20"
                               value={h} onChange={(e) => setDrafts((p) => ({ ...p, [m.id]: { ...p[m.id], home: e.target.value } }))} />
                             <span>–</span>
-                            <Input className="w-12 h-8 text-center" type="number" min="0" max="20"
+                            <Input className="w-12 h-8 px-1 text-center leading-none" type="number" min="0" max="20"
                               value={a} onChange={(e) => setDrafts((p) => ({ ...p, [m.id]: { ...p[m.id], away: e.target.value } }))} />
                           </div>
                         </TableCell>
