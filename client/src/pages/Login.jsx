@@ -26,12 +26,29 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
-      <div className="flex items-center gap-2">
+    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 gap-6 overflow-hidden">
+      {/* Soccer pitch lines background */}
+      <svg
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="none"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 h-full w-full text-foreground opacity-[0.07]"
+      >
+        <rect x="50"   y="100" width="1100" height="600" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <line x1="600" y1="100" x2="600" y2="700"        stroke="currentColor" strokeWidth="2"/>
+        <circle cx="600" cy="400" r="100" fill="none"    stroke="currentColor" strokeWidth="2"/>
+        <rect x="50"   y="250" width="150"  height="300" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <rect x="1000" y="250" width="150"  height="300" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <circle cx="600"  cy="400" r="6" fill="currentColor"/>
+        <circle cx="175"  cy="400" r="4" fill="currentColor"/>
+        <circle cx="1025" cy="400" r="4" fill="currentColor"/>
+      </svg>
+
+      <div className="relative z-10 flex items-center gap-2">
         <Trophy className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-bold tracking-tight">World Cup 2026</h1>
       </div>
-      <p className="text-sm text-muted-foreground">Office Pool · Season 2026</p>
+      <p className="relative z-10 text-sm text-muted-foreground">Office Pool · Season 2026</p>
 
       <Card className="w-full max-w-md">
         <CardHeader>
