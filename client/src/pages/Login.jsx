@@ -61,7 +61,7 @@ export default function Login({ onLogin }) {
       </Card>
 
       <div className="text-xs text-muted-foreground text-center max-w-md">
-        🎯 Points: <b>+7</b> exact · <b>+5</b> winner + goals · <b>+3</b> winner · <b>+1</b> result direction
+        🎯 Points: <b>+7</b> exact · <b>+5</b> winner + one team · <b>+3</b> winner · <b>+2</b> one team (wrong result) · <b>+50</b> champion
       </div>
     </div>
   );

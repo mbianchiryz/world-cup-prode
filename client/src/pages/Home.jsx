@@ -244,10 +244,10 @@ export default function Home() {
             <div className="rounded-md border p-3">
               <div className="font-medium text-foreground mb-1">How scoring works</div>
               <ul className="space-y-0.5 text-xs">
-                <li><b className="text-foreground">+7</b> · exact score</li>
-                <li><b className="text-foreground">+5</b> · winner + one team's goals</li>
-                <li><b className="text-foreground">+3</b> · correct winner</li>
-                <li><b className="text-foreground">+1</b> · right direction</li>
+                <li><b className="text-foreground">+7</b> · perfect score (both teams exact)</li>
+                <li><b className="text-foreground">+5</b> · right result + one team's goals</li>
+                <li><b className="text-foreground">+3</b> · correct win / draw / loss</li>
+                <li><b className="text-foreground">+2</b> · one team's goals (wrong result)</li>
                 <li><b className="text-foreground">+50</b> · pick the champion</li>
               </ul>
             </div>
