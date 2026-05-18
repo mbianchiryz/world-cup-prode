@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 
 import Sidebar      from '@/components/Sidebar';
 import Login        from '@/pages/Login';
+import Home         from '@/pages/Home';
 import Predictions  from '@/pages/Predictions';
 import Groups       from '@/pages/Groups';
 import Leaderboard  from '@/pages/Leaderboard';
@@ -41,12 +42,12 @@ export default function App() {
       <Sidebar user={user} onLogout={() => setUser(null)} />
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
         <Routes>
-          <Route path="/"            element={<Navigate to="/predictions" replace />} />
+          <Route path="/"            element={<Home />} />
           <Route path="/predictions" element={<Predictions />} />
           <Route path="/groups"      element={<Groups />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/admin"       element={user.isAdmin ? <Admin /> : <Navigate to="/predictions" replace />} />
-          <Route path="*"            element={<Navigate to="/predictions" replace />} />
+          <Route path="/admin"       element={user.isAdmin ? <Admin /> : <Navigate to="/" replace />} />
+          <Route path="*"            element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
