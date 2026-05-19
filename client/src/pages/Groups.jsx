@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { getGroupStandings } from '@/lib/supabase-db';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 export default function Groups() {
-  const [groups, setGroups] = useState([]);
+  const [groups, setGroups]   = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/groups')
-      .then((d) => setGroups(d.groups || []))
-      .finally(() => setLoading(false));
-
-    const i = setInterval(() => {
-      api.get('/api/groups').then((d) => setGroups(d.groups || [])).catch(() => {});
-    }, 60_000);
+    getGroupStandings().then(setGroups).finally(() => setLoading(false));
+    const i = setInterval(() => getGroupStandings().then(setGroups).catch(() => {}), 60_000);
     return () => clearInterval(i);
   }, []);
 
@@ -46,7 +41,9 @@ export default function Groups() {
                         <span className="mr-1">{row.flag}</span>{row.team}
                       </TableCell>
                       <TableCell className="px-2 py-2 text-center text-muted-foreground">{row.p}</TableCell>
-                      <TableCell className="px-2 py-2 text-center text-muted-foreground">{row.gd > 0 ? `+${row.gd}` : row.gd}</TableCell>
+                      <TableCell className="px-2 py-2 text-center text-muted-foreground">
+                        {row.gd > 0 ? `+${row.gd}` : row.gd}
+                      </TableCell>
                       <TableCell className="px-2 py-2 text-center font-bold">{row.pts}</TableCell>
                     </TableRow>
                   ))}

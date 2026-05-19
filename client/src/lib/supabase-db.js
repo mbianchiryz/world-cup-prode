@@ -5,7 +5,7 @@
  */
 import { supabase } from './supabase';
 import { calcMatchPoints, calcScore } from './scoring';
-import { ALL_TEAMS } from './matches-data';
+import { ALL_TEAMS, GROUPS, getFlag } from './matches-data';
 
 // ── Matches ───────────────────────────────────────────────────────────────────
 export async function getMatches() {
@@ -118,6 +118,52 @@ export async function getLeaderboard() {
 
   standings.sort((a, b) => b.total - a.total || b.exact - a.exact);
   return { standings, champion };
+}
+
+// ── Group standings (computed client-side from Supabase matches) ──────────────
+export async function getGroupStandings() {
+  const { data: matches, error } = await supabase
+    .from('matches')
+    .select('*')
+    .eq('stage', 'group')
+    .order('match_time', { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  // Seed empty table from the official GROUPS constant
+  const tables = {};
+  for (const [letter, teams] of Object.entries(GROUPS)) {
+    tables[letter] = {};
+    for (const team of teams) {
+      tables[letter][team] = { team, flag: getFlag(team), p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+    }
+  }
+
+  // Apply finished match results
+  for (const m of (matches || [])) {
+    if (!m.finished || m.home_score == null) continue;
+    const letter = m.group_name;
+    if (!letter || !tables[letter]) continue;
+    const th = tables[letter][m.home_team];
+    const ta = tables[letter][m.away_team];
+    if (!th || !ta) continue;
+
+    th.p++; ta.p++;
+    th.gf += m.home_score; th.ga += m.away_score; th.gd = th.gf - th.ga;
+    ta.gf += m.away_score; ta.ga += m.home_score; ta.gd = ta.gf - ta.ga;
+
+    if (m.home_score > m.away_score)      { th.w++; th.pts += 3; ta.l++; }
+    else if (m.home_score < m.away_score) { ta.w++; ta.pts += 3; th.l++; }
+    else                                   { th.d++; th.pts++;    ta.d++; ta.pts++; }
+  }
+
+  // Sort each group: pts → GD → GF → name
+  return Object.entries(tables).map(([letter, table]) => ({
+    letter,
+    standings: Object.values(table).sort((a, b) =>
+      b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team)
+    ),
+  })).sort((a, b) => a.letter.localeCompare(b.letter));
 }
 
 // ── Player picks (for leaderboard detail modal — finished matches only) ───────
