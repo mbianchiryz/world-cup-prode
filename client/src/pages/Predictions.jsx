@@ -362,7 +362,7 @@ function KnockoutSection({ matches, preds, onSave }) {
 
   const filtered = useMemo(() => {
     if (view === 'bracket') return knockoutMatches;
-    if (view === 'finals')  return knockoutMatches.filter((m) => ['sf', '3rd', 'final'].includes(m.stage));
+    if (view === 'finals')  return knockoutMatches.filter((m) => ['3rd', 'final'].includes(m.stage));
     return knockoutMatches.filter((m) => m.stage === view);
   }, [knockoutMatches, view]);
 
