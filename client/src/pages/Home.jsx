@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '@/lib/api';
 import { getFlag } from '@/lib/matches-data';
+import { getMatches, getLeaderboard } from '@/lib/supabase-db';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Calendar, MapPin, Users, Target, ArrowRight } from 'lucide-react';
@@ -184,11 +184,8 @@ export default function Home() {
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/api/matches'),
-      api.get('/api/leaderboard'),
-    ])
-      .then(([m, lb]) => { setMatches(m.matches || []); setLeaderboard(lb); })
+    Promise.all([getMatches(), getLeaderboard()])
+      .then(([ms, lb]) => { setMatches(ms); setLeaderboard(lb); })
       .finally(() => setLoading(false));
   }, []);
 

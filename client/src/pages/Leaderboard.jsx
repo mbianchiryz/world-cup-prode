@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
 import { getFlag } from '@/lib/matches-data';
+import { getLeaderboard, getUserPicks } from '@/lib/supabase-db';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ function PlayerModal({ player, onClose }) {
   useEffect(() => {
     setLoading(true);
     setError('');
-    api.get(`/api/leaderboard/user/${player.id}`)
+    getUserPicks(player.id)
       .then((d) => setPicks(d.picks || []))
       .catch((e) => setError(e.message || 'Failed to load'))
       .finally(() => setLoading(false));
@@ -184,8 +184,8 @@ export default function Leaderboard() {
   const [selectedPlayer, setSelected] = useState(null);
 
   useEffect(() => {
-    api.get('/api/leaderboard').then(setData).finally(() => setLoading(false));
-    const i = setInterval(() => api.get('/api/leaderboard').then(setData).catch(() => {}), 60_000);
+    getLeaderboard().then(setData).finally(() => setLoading(false));
+    const i = setInterval(() => getLeaderboard().then(setData).catch(() => {}), 60_000);
     return () => clearInterval(i);
   }, []);
 

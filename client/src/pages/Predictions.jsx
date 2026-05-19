@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
 import { getFlag } from '@/lib/matches-data';
+import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick } from '@/lib/supabase-db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -322,10 +322,10 @@ export default function Predictions() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ matches: ms }, { predictions }, champData] = await Promise.all([
-        api.get('/api/matches'),
-        api.get('/api/predictions'),
-        api.get('/api/champion'),
+      const [ms, predictions, champData] = await Promise.all([
+        getMatches(),
+        getMyPredictions(),
+        getChampionData(),
       ]);
       setMatches(ms);
       const map = {};
@@ -344,12 +344,12 @@ export default function Predictions() {
   }, [loadAll]);
 
   const savePred = useCallback(async (matchId, homeScore, awayScore) => {
-    await api.post('/api/predictions', { matchId, homeScore, awayScore });
+    await savePrediction(matchId, homeScore, awayScore);
     setPreds((p) => ({ ...p, [matchId]: { match_id: matchId, home_score: homeScore, away_score: awayScore } }));
   }, []);
 
   const saveChamp = useCallback(async (team) => {
-    await api.post('/api/champion', { team });
+    await saveChampionPick(team);
     setChamp((c) => ({ ...c, prediction: team }));
   }, []);
 
