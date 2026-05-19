@@ -9,8 +9,81 @@ import { Lock, Check, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const LOCK_OFFSET_MS = 60 * 60 * 1000; // 1 hour before kickoff
+
 function isLocked(matchTime) {
-  return Date.now() >= new Date(matchTime).getTime() - 60 * 60 * 1000;
+  return Date.now() >= new Date(matchTime).getTime() - LOCK_OFFSET_MS;
+}
+
+/** Returns ms remaining until the pick deadline (matchTime − 1h). Negative = already locked. */
+function msUntilLock(matchTime) {
+  return new Date(matchTime).getTime() - LOCK_OFFSET_MS - Date.now();
+}
+
+/**
+ * Live countdown to pick deadline.
+ * Updates every second while open, every minute when > 10 min away.
+ * Returns { label, urgency: 'open'|'soon'|'imminent'|'locked'|'finished' }
+ */
+function usePickCountdown(matchTime, finished) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (finished) return;
+    const ms = msUntilLock(matchTime);
+    // tick every second if < 10 min left, otherwise every 30s
+    const interval = ms > 0 && ms < 10 * 60_000 ? 1000 : 30_000;
+    const id = setInterval(() => setNow(Date.now()), interval);
+    return () => clearInterval(id);
+  }, [matchTime, finished]);
+
+  if (finished) return { label: null, urgency: 'finished' };
+
+  const ms = new Date(matchTime).getTime() - LOCK_OFFSET_MS - now;
+  if (ms <= 0) return { label: null, urgency: 'locked' };
+
+  const totalSecs = Math.floor(ms / 1000);
+  const days  = Math.floor(totalSecs / 86400);
+  const hours = Math.floor((totalSecs % 86400) / 3600);
+  const mins  = Math.floor((totalSecs % 3600) / 60);
+  const secs  = totalSecs % 60;
+
+  let label;
+  if (days > 0)        label = `${days}d ${hours}h`;
+  else if (hours > 0)  label = `${hours}h ${mins}m`;
+  else if (mins >= 1)  label = `${mins}m ${secs}s`;
+  else                 label = `${secs}s`;
+
+  const urgency =
+    ms > 6 * 3_600_000  ? 'open'     :  // > 6h  → neutral
+    ms > 2 * 3_600_000  ? 'soon'     :  // > 2h  → amber
+                          'imminent';    // < 2h  → red
+
+  return { label, urgency };
+}
+
+const URGENCY_STYLES = {
+  open:     'text-muted-foreground',
+  soon:     'text-amber-500 font-medium',
+  imminent: 'text-red-500 font-semibold',
+};
+
+function CountdownBadge({ matchTime, finished }) {
+  const { label, urgency } = usePickCountdown(matchTime, finished);
+
+  if (urgency === 'finished') return <span className="text-xs text-muted-foreground">✓ Final</span>;
+  if (urgency === 'locked')   return (
+    <span className="text-xs text-muted-foreground flex items-center gap-1">
+      <Lock className="h-3 w-3" />Picks closed
+    </span>
+  );
+
+  return (
+    <span className={cn('text-xs flex items-center gap-1', URGENCY_STYLES[urgency])}>
+      <Lock className="h-3 w-3" />
+      {label} left
+    </span>
+  );
 }
 
 // ── MatchCard (grid view) ─────────────────────────────────────────────────────
@@ -86,10 +159,7 @@ function MatchCard({ match, pred, onSave }) {
         </div>
 
         <div className="flex justify-between items-center text-xs">
-          <span className="text-muted-foreground flex items-center gap-1">
-            {locked && !match.finished ? <><Lock className="h-3 w-3" />Locked</> : null}
-            {match.finished ? '✓ Final' : null}
-          </span>
+          <CountdownBadge matchTime={match.match_time} finished={match.finished} />
           {canEdit && (
             <Button size="sm" variant={saved ? 'default' : 'secondary'} onClick={handleSave} disabled={h === '' || a === ''}>
               {saved ? <><Check className="h-3 w-3 mr-1" />Saved</> : 'Save Pick'}
@@ -176,9 +246,10 @@ function BracketTile({ match, pred, onSave }) {
           </Button>
         </div>
       )}
-      {locked && !match.finished && !isTBD && (
-        <div className="border-t px-2 py-1 text-[10px] text-muted-foreground flex items-center gap-1">
-          <Lock className="h-2.5 w-2.5" />Locked
+      {/* Countdown / status strip on bracket tile */}
+      {!canEdit && !isTBD && (
+        <div className="border-t px-2 py-1">
+          <CountdownBadge matchTime={match.match_time} finished={match.finished} />
         </div>
       )}
     </div>
