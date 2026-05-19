@@ -257,38 +257,73 @@ function BracketTile({ match, pred, onSave }) {
 }
 
 // ── Bracket view ──────────────────────────────────────────────────────────────
-const BRACKET_ROUNDS = [
-  { key: 'r32',   label: 'Round of 32',    stages: ['r32'] },
-  { key: 'r16',   label: 'Round of 16',    stages: ['r16'] },
-  { key: 'qf',    label: 'Quarter-finals', stages: ['qf']  },
-  { key: 'sf',    label: 'Semi-finals',    stages: ['sf']  },
-  { key: 'final', label: 'Final',          stages: ['3rd', 'final'] },
+const MAIN_ROUNDS = [
+  { key: 'r32', label: 'Round of 32',    stage: 'r32' },
+  { key: 'r16', label: 'Round of 16',    stage: 'r16' },
+  { key: 'qf',  label: 'Quarter-finals', stage: 'qf'  },
+  { key: 'sf',  label: 'Semi-finals',    stage: 'sf'  },
 ];
 
 function BracketView({ matches, preds, onSave }) {
-  const roundMatches = BRACKET_ROUNDS.map((r) => ({
-    ...r,
-    matches: matches.filter((m) => r.stages.includes(m.stage))
-      .sort((a, b) => new Date(a.match_time) - new Date(b.match_time)),
-  }));
+  const finalMatch = matches.find((m) => m.stage === 'final');
+  const thirdMatch = matches.find((m) => m.stage === '3rd');
 
   return (
     <div className="overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-3 items-stretch" style={{ minHeight: '640px', minWidth: '900px' }}>
-        {roundMatches.map((round) => (
-          <div key={round.key} className="flex flex-col flex-1 min-w-[180px]">
-            {/* Round header */}
-            <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
-              {round.label}
+      <div className="flex gap-3 items-stretch" style={{ minHeight: '680px', minWidth: '960px' }}>
+
+        {/* Main rounds: R32 → R16 → QF → SF */}
+        {MAIN_ROUNDS.map((round) => {
+          const roundMatches = matches
+            .filter((m) => m.stage === round.stage)
+            .sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
+          return (
+            <div key={round.key} className="flex flex-col flex-1 min-w-[180px]">
+              <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
+                {round.label}
+              </div>
+              <div className="flex-1 flex flex-col justify-around gap-2">
+                {roundMatches.map((m) => (
+                  <BracketTile key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+                ))}
+              </div>
             </div>
-            {/* Matches evenly distributed in column height */}
-            <div className="flex-1 flex flex-col justify-around gap-2">
-              {round.matches.map((m) => (
-                <BracketTile key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
-              ))}
-            </div>
+          );
+        })}
+
+        {/* Final column: 🏆 Final centered, 3rd place below */}
+        <div className="flex flex-col flex-1 min-w-[200px]">
+          <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
+            Final
           </div>
-        ))}
+          <div className="flex-1 flex flex-col">
+
+            {/* Top ~60% — Final match centered */}
+            <div className="flex-[3] flex flex-col items-stretch justify-center gap-2 pb-4">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-primary">
+                🏆 <span className="uppercase tracking-widest">World Cup Final</span>
+              </div>
+              {finalMatch && (
+                <BracketTile match={finalMatch} pred={preds[finalMatch.id]} onSave={onSave} />
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+
+            {/* Bottom ~40% — 3rd place */}
+            <div className="flex-[2] flex flex-col items-stretch justify-center gap-2 pt-4">
+              <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                🥉 3rd Place Play-off
+              </div>
+              {thirdMatch && (
+                <BracketTile match={thirdMatch} pred={preds[thirdMatch.id]} onSave={onSave} />
+              )}
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
   );
