@@ -291,29 +291,28 @@ function BracketView({ matches, preds, onSave }) {
           );
         })}
 
-        {/* Final column: 🏆 Final centered, 3rd place below */}
+        {/* Final column: Final at 50% (between SFs), 3rd place at 75% (beside 2nd SF) */}
         <div className="flex flex-col flex-1 min-w-[200px]">
           <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
             Final
           </div>
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 relative">
 
-            {/* Top ~60% — Final match centered */}
-            <div className="flex-[3] flex flex-col items-stretch justify-center gap-2 pb-4">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-primary">
-                🏆 <span className="uppercase tracking-widest">World Cup Final</span>
+            {/* 🏆 Final — centered at 50% of column height (between the two semi-finals) */}
+            <div className="absolute inset-x-0 flex flex-col gap-1.5"
+                 style={{ top: '50%', transform: 'translateY(-50%)' }}>
+              <div className="flex items-center justify-center gap-1 text-xs font-bold text-primary tracking-wide">
+                🏆 World Cup Final
               </div>
               {finalMatch && (
                 <BracketTile match={finalMatch} pred={preds[finalMatch.id]} onSave={onSave} />
               )}
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-dashed border-muted-foreground/30 my-1" />
-
-            {/* Bottom ~40% — 3rd place */}
-            <div className="flex-[2] flex flex-col items-stretch justify-center gap-2 pt-4">
-              <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {/* 🥉 3rd Place — at 75% (aligned alongside the second semi-final) */}
+            <div className="absolute inset-x-0 flex flex-col gap-1.5"
+                 style={{ top: '75%', transform: 'translateY(-50%)' }}>
+              <div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 🥉 3rd Place Play-off
               </div>
               {thirdMatch && (
