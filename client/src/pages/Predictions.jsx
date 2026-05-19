@@ -405,6 +405,29 @@ function KnockoutSection({ matches, preds, onSave }) {
       <PillBar options={viewOptions} value={view} onChange={setView} />
       {view === 'bracket' ? (
         <BracketView matches={knockoutMatches} preds={preds} onSave={onSave} />
+      ) : view === 'finals' ? (
+        /* Finals view: Final + 3rd place with distinct labels */
+        <div className="grid gap-6 sm:grid-cols-2">
+          {/* 3rd place first (earlier date), then Final */}
+          {[
+            { stage: '3rd',   icon: '🥉', label: '3rd Place Play-off' },
+            { stage: 'final', icon: '🏆', label: 'World Cup Final'    },
+          ].map(({ stage, icon, label }) => {
+            const m = knockoutMatches.find((x) => x.stage === stage);
+            if (!m) return null;
+            return (
+              <div key={stage} className="space-y-2">
+                <div className={cn(
+                  'flex items-center gap-1.5 text-sm font-semibold',
+                  stage === 'final' ? 'text-primary' : 'text-muted-foreground',
+                )}>
+                  {icon} {label}
+                </div>
+                <MatchCard match={m} pred={preds[m.id]} onSave={onSave} />
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
