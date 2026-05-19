@@ -67,6 +67,46 @@ function buildStandings() {
   }));
 }
 
+// ── Mock predictions per player (for finished matches only) ─────────────────
+const DEMO_PLAYER_PICKS = {
+  1: [ // Agus
+    { match_id: 1, pred_home: 3, pred_away: 1 },
+    { match_id: 2, pred_home: 2, pred_away: 0 },
+    { match_id: 3, pred_home: 1, pred_away: 1 },
+    { match_id: 4, pred_home: 3, pred_away: 2 },
+    { match_id: 5, pred_home: 0, pred_away: 1 },
+    { match_id: 6, pred_home: 2, pred_away: 1 },
+    { match_id: 7, pred_home: 3, pred_away: 0 },
+    { match_id: 8, pred_home: 1, pred_away: 0 },
+  ],
+  2: [ // Demo User
+    { match_id: 1, pred_home: 3, pred_away: 1 },
+    { match_id: 2, pred_home: 1, pred_away: 0 },
+    { match_id: 3, pred_home: 2, pred_away: 1 },
+    { match_id: 5, pred_home: 0, pred_away: 2 },
+    { match_id: 7, pred_home: 2, pred_away: 0 },
+  ],
+  3: [ // Juan
+    { match_id: 1, pred_home: 2, pred_away: 0 },
+    { match_id: 2, pred_home: 2, pred_away: 0 },
+    { match_id: 4, pred_home: 3, pred_away: 1 },
+    { match_id: 6, pred_home: 1, pred_away: 1 },
+    { match_id: 7, pred_home: 2, pred_away: 1 },
+    { match_id: 8, pred_home: 0, pred_away: 0 },
+  ],
+  4: [ // María
+    { match_id: 1, pred_home: 1, pred_away: 0 },
+    { match_id: 3, pred_home: 1, pred_away: 1 },
+    { match_id: 5, pred_home: 1, pred_away: 0 },
+    { match_id: 8, pred_home: 0, pred_away: 0 },
+  ],
+  5: [ // TestAdmin
+    { match_id: 2, pred_home: 1, pred_away: 1 },
+    { match_id: 4, pred_home: 2, pred_away: 2 },
+    { match_id: 7, pred_home: 1, pred_away: 0 },
+  ],
+};
+
 // ── Mock leaderboard (5 demo players with varied scores) ────────────────────
 const _leaderboard = {
   standings: [
@@ -112,6 +152,36 @@ export function demoResponse(path, opts = {}) {
   }
   if (path === '/api/groups')       return { groups: buildStandings(), source: 'demo' };
   if (path === '/api/leaderboard')  return _leaderboard;
+
+  // Player picks — /api/leaderboard/user/:id
+  const userPicksMatch = path.match(/^\/api\/leaderboard\/user\/(\d+)$/);
+  if (userPicksMatch) {
+    const uid = Number(userPicksMatch[1]);
+    const player = _leaderboard.standings.find((s) => s.id === uid);
+    if (!player) return { error: 'User not found' };
+    const finishedMatches = _matches.filter((m) => m.finished);
+    const playerPreds = DEMO_PLAYER_PICKS[uid] || [];
+    const picks = finishedMatches.map((m) => {
+      const pred = playerPreds.find((p) => p.match_id === m.id) || null;
+      let points = null;
+      if (pred) {
+        const ph = pred.pred_home, pa = pred.pred_away;
+        const rh = m.home_score, ra = m.away_score;
+        const predR = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
+        const realR = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
+        const ok = predR === realR;
+        points = ok ? (3 + (ph === rh ? 2 : 0) + (pa === ra ? 2 : 0))
+                    : ((ph === rh ? 2 : 0) + (pa === ra ? 2 : 0));
+      }
+      return {
+        match_id: m.id, home_team: m.home_team, away_team: m.away_team,
+        home_score: m.home_score, away_score: m.away_score,
+        match_time: m.match_time, stage: m.stage, group_name: m.group_name,
+        pred_home: pred?.pred_home ?? null, pred_away: pred?.pred_away ?? null, points,
+      };
+    });
+    return { user: { id: uid, name: player.name }, picks };
+  }
   if (path === '/api/champion') {
     if (method === 'GET') return {
       prediction: 'Argentina', locked: false, lockTime: null, champion: null, teams: ALL_TEAMS,
