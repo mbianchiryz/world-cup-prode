@@ -234,8 +234,8 @@ export default function Home() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Predict every match of the 2026 World Cup and pick the eventual champion. Live scores
-            update from ESPN every minute during the tournament.
+            Predict every match of the 2026 World Cup and pick the eventual champion. Results
+            update in real time throughout the tournament.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-md border p-3">
