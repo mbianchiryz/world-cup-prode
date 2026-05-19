@@ -1,8 +1,5 @@
-/**
- * Fetch wrapper that always includes cookies. Falls back to demo mode
- * (mock data) automatically when no backend is reachable.
- */
 import { demoResponse } from './mock-data';
+import { supabase } from './supabase';
 
 const BASE = import.meta.env.VITE_API_URL || '';
 
@@ -16,16 +13,22 @@ async function isDemoMode() {
   } catch {
     _demoMode = true;
   }
-  if (_demoMode) console.warn('[api] No backend reachable — running in demo mode.');
+  if (_demoMode) console.warn('[api] No backend — demo mode.');
   return _demoMode;
+}
+
+async function getAuthHeader() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
 async function request(path, opts = {}) {
   if (await isDemoMode()) return demoResponse(path, opts);
 
+  const authHeader = await getAuthHeader();
   const res = await fetch(BASE + path, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...(opts.headers || {}) },
     ...opts,
   });
   let data = null;

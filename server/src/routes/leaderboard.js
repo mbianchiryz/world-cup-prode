@@ -1,28 +1,33 @@
 import { Router } from 'express';
-import { getDb, getChampion } from '../../lib/db.js';
+import { supabaseAdmin } from '../../lib/supabase.js';
 import { calcScore, calcMatchPoints } from '../../lib/scoring.js';
-import { maybeAutoSync } from '../../lib/auto-sync.js';
 
 const router = Router();
 
 router.get('/', async (_req, res) => {
-  await maybeAutoSync().catch(() => {});
+  const [
+    { data: profiles },
+    { data: matches },
+    { data: allPreds },
+    { data: champPreds },
+    { data: settings },
+  ] = await Promise.all([
+    supabaseAdmin.from('profiles').select('*'),
+    supabaseAdmin.from('matches').select('*'),
+    supabaseAdmin.from('predictions').select('*'),
+    supabaseAdmin.from('champion_predictions').select('*'),
+    supabaseAdmin.from('settings').select('value').eq('key', 'champion').single(),
+  ]);
 
-  const db       = getDb();
-  const users    = db.prepare('SELECT id, name FROM users ORDER BY name ASC').all();
-  const matches  = db.prepare('SELECT * FROM matches').all();
-  const champion = getChampion(db);
+  const champion = settings?.value || null;
 
-  const allPredictions = db.prepare('SELECT * FROM predictions').all();
-  const allChampPreds  = db.prepare('SELECT * FROM champion_predictions').all();
-
-  const standings = users.map((user) => {
-    const predictions  = allPredictions.filter((p) => p.user_id === user.id);
-    const championPred = allChampPreds.find((c) => c.user_id === user.id) || null;
-    const score        = calcScore({ predictions, matches, championPred, champion });
+  const standings = (profiles || []).map((user) => {
+    const predictions  = (allPreds || []).filter((p) => p.user_id === user.id);
+    const championPred = (champPreds || []).find((c) => c.user_id === user.id) || null;
+    const score        = calcScore({ predictions, matches: matches || [], championPred, champion });
     return {
       id: user.id,
-      name: user.name,
+      name: user.name || user.email?.split('@')[0],
       pickedChampion: championPred?.team || null,
       ...score,
     };
@@ -33,23 +38,19 @@ router.get('/', async (_req, res) => {
 });
 
 // GET /api/leaderboard/user/:userId — predictions on FINISHED matches only (public, no auth required)
-router.get('/user/:userId', (req, res) => {
-  const userId = Number(req.params.userId);
-  if (!userId) return res.status(400).json({ error: 'Invalid user id' });
+router.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
 
-  const db = getDb();
+  const [{ data: profile }, { data: finishedMatches }, { data: predictions }] = await Promise.all([
+    supabaseAdmin.from('profiles').select('*').eq('id', userId).single(),
+    supabaseAdmin.from('matches').select('*').eq('finished', true).order('match_time'),
+    supabaseAdmin.from('predictions').select('*').eq('user_id', userId),
+  ]);
 
-  const user = db.prepare('SELECT id, name FROM users WHERE id = ?').get(userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!profile) return res.status(404).json({ error: 'User not found' });
 
-  // Only finished matches
-  const finishedMatches = db.prepare('SELECT * FROM matches WHERE finished = 1 ORDER BY match_time ASC').all();
-
-  // This user's predictions (we then filter to finished matches client-side)
-  const predictions = db.prepare('SELECT * FROM predictions WHERE user_id = ?').all(userId);
-
-  const picks = finishedMatches.map((m) => {
-    const pred = predictions.find((p) => p.match_id === m.id) || null;
+  const picks = (finishedMatches || []).map((m) => {
+    const pred   = (predictions || []).find((p) => p.match_id === m.id) || null;
     const points = pred ? calcMatchPoints(pred, m) : null;
     return {
       match_id:   m.id,
@@ -66,7 +67,7 @@ router.get('/user/:userId', (req, res) => {
     };
   });
 
-  res.json({ user, picks });
+  res.json({ user: profile, picks });
 });
 
 export default router;

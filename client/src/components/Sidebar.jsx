@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Moon, Sun, LogOut, Trophy, Home as HomeIcon, Target, LayoutGrid, BarChart3, Settings, Menu, X } from 'lucide-react';
-import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -25,9 +24,8 @@ export default function Sidebar({ user, onLogout }) {
     localStorage.setItem('prode_dark', String(next));
   }
 
-  async function handleLogout() {
-    await api.post('/api/auth/logout').catch(() => {});
-    onLogout();
+  function handleLogout() {
+    onLogout(); // App.jsx calls supabase.auth.signOut() which triggers onAuthStateChange
     navigate('/');
   }
 

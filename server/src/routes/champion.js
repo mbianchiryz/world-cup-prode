@@ -1,57 +1,94 @@
 import { Router } from 'express';
-import { getDb, isLocked, getFirstMatchTime, getChampion } from '../../lib/db.js';
+import { supabaseAdmin, verifyUser } from '../../lib/supabase.js';
 import { ALL_TEAMS } from '../../lib/matches-data.js';
 
 const router = Router();
 
-function getUserId(req) {
-  const val = req.cookies.user_id;
-  return val ? Number(val) : null;
+/** Returns ISO string 1 hour before first match, or null */
+async function getFirstMatchLockTime() {
+  const { data } = await supabaseAdmin
+    .from('matches')
+    .select('match_time')
+    .order('match_time', { ascending: true })
+    .limit(1)
+    .single();
+  if (!data?.match_time) return null;
+  return new Date(new Date(data.match_time).getTime() - 60 * 60 * 1000).toISOString();
 }
 
-router.get('/', (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ error: 'Not authenticated.' });
+/** Returns the champion team name once the Final has a result, otherwise null */
+async function getChampion() {
+  // Check settings table first (manual override)
+  const { data: setting } = await supabaseAdmin
+    .from('settings')
+    .select('value')
+    .eq('key', 'champion')
+    .single();
+  if (setting?.value) return setting.value;
 
-  const db        = getDb();
-  const pred      = db.prepare('SELECT * FROM champion_predictions WHERE user_id = ?').get(userId);
-  const firstMatch = getFirstMatchTime(db);
-  const locked    = firstMatch ? isLocked(firstMatch) : false;
-  const champion  = getChampion(db);
+  // Otherwise derive from the final match result
+  const { data: final } = await supabaseAdmin
+    .from('matches')
+    .select('*')
+    .eq('stage', 'final')
+    .eq('finished', true)
+    .single();
+  if (!final) return null;
+  if (final.winner === 'home') return final.home_team;
+  if (final.winner === 'away') return final.away_team;
+  if (Number(final.home_score) > Number(final.away_score)) return final.home_team;
+  if (Number(final.away_score) > Number(final.home_score)) return final.away_team;
+  return null;
+}
+
+router.get('/', async (req, res) => {
+  const user = await verifyUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
+
+  const [lockTimeISO, champion] = await Promise.all([
+    getFirstMatchLockTime(),
+    getChampion(),
+  ]);
+
+  const locked = lockTimeISO ? Date.now() >= new Date(lockTimeISO).getTime() : false;
+
+  const { data: pred } = await supabaseAdmin
+    .from('champion_predictions')
+    .select('team')
+    .eq('user_id', user.id)
+    .single();
 
   res.json({
-    prediction: pred ? pred.team : null,
+    prediction: pred?.team || null,
     locked,
-    lockTime: firstMatch
-      ? new Date(new Date(firstMatch).getTime() - 60 * 60 * 1000).toISOString()
-      : null,
+    lockTime: lockTimeISO,
     champion,
     teams: ALL_TEAMS,
   });
 });
 
-router.post('/', (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ error: 'Not authenticated.' });
+router.post('/', async (req, res) => {
+  const user = await verifyUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated.' });
 
   const { team } = req.body || {};
   if (!team || !ALL_TEAMS.includes(team)) {
     return res.status(400).json({ error: 'Invalid team.' });
   }
 
-  const db = getDb();
-  const firstMatch = getFirstMatchTime(db);
-  if (firstMatch && isLocked(firstMatch)) {
+  const lockTimeISO = await getFirstMatchLockTime();
+  if (lockTimeISO && Date.now() >= new Date(lockTimeISO).getTime()) {
     return res.status(403).json({ error: 'Champion prediction is locked.' });
   }
 
-  db.prepare(`
-    INSERT INTO champion_predictions (user_id, team, updated_at)
-    VALUES (?, ?, datetime('now'))
-    ON CONFLICT(user_id)
-    DO UPDATE SET team = excluded.team, updated_at = excluded.updated_at
-  `).run(userId, team);
+  const { error } = await supabaseAdmin
+    .from('champion_predictions')
+    .upsert(
+      { user_id: user.id, team, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
 
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 

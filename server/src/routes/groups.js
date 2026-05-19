@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { GROUPS, getFlag } from '../../lib/matches-data.js';
 import { fetchEspnStandings, fetchEspnMatches, computeStandings } from '../../lib/espn-api.js';
 import { maybeAutoSync } from '../../lib/auto-sync.js';
-import { getDb } from '../../lib/db.js';
+import { supabaseAdmin } from '../../lib/supabase.js';
 
 const router = Router();
 
@@ -25,19 +25,20 @@ router.get('/', async (_req, res) => {
 
     return res.json({ groups, source: 'espn-live' });
   } catch (err) {
-    console.error('[groups] ESPN fetch failed, falling back to local DB:', err.message);
+    console.error('[groups] ESPN fetch failed, falling back to Supabase DB:', err.message);
     try {
-      const db = getDb();
-      const matches = db.prepare(
-        "SELECT * FROM matches WHERE stage = 'group' ORDER BY match_time"
-      ).all();
+      const { data: matches } = await supabaseAdmin
+        .from('matches')
+        .select('*')
+        .eq('stage', 'group')
+        .order('match_time', { ascending: true });
 
       function buildStandings(teams, dbMatches) {
         const table = {};
         for (const team of teams)
           table[team] = { team, flag: getFlag(team), p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
 
-        for (const m of dbMatches) {
+        for (const m of (dbMatches || [])) {
           if (!m.finished || m.home_score == null || m.away_score == null) continue;
           const h = m.home_team, a = m.away_team;
           if (!table[h] || !table[a]) continue;
@@ -57,7 +58,7 @@ router.get('/', async (_req, res) => {
       }
 
       const groups = Object.entries(GROUPS).map(([letter, teams]) => {
-        const groupMatches = matches.filter(m => m.group_name === letter);
+        const groupMatches = (matches || []).filter(m => m.group_name === letter);
         return { letter, standings: buildStandings(teams, groupMatches) };
       });
 

@@ -1,10 +1,12 @@
 import { Router } from 'express';
+import { verifyUser } from '../../lib/supabase.js';
 import { forceSync } from '../../lib/auto-sync.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
-  if (req.cookies.admin_token !== 'valid') {
+  const user = await verifyUser(req);
+  if (!user?.is_admin) {
     return res.status(403).json({ error: 'Unauthorized.' });
   }
   try {

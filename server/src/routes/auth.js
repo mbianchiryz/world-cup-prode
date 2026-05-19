@@ -1,60 +1,30 @@
 import { Router } from 'express';
-import { getDb } from '../../lib/db.js';
+import { verifyUser } from '../../lib/supabase.js';
 
 const router = Router();
 
-const COOKIE_OPTS = {
-  httpOnly: true,
-  path: '/',
-  sameSite: 'lax',
-  secure: false,
-};
-
-// GET /api/auth/me
-router.get('/me', (req, res) => {
-  const userId     = req.cookies.user_id;
-  const adminToken = req.cookies.admin_token;
-
-  if (!userId) return res.json({ user: null });
-
-  const db   = getDb();
-  const user = db.prepare('SELECT id, name FROM users WHERE id = ?').get(Number(userId));
+// GET /api/auth/me — verifies Supabase JWT, returns user profile (backward compat)
+router.get('/me', async (req, res) => {
+  const user = await verifyUser(req);
   if (!user) return res.json({ user: null });
 
   res.json({
-    user: { id: user.id, name: user.name, isAdmin: adminToken === 'valid' },
+    user: {
+      id:      user.id,
+      name:    user.name || user.email?.split('@')[0] || 'User',
+      email:   user.email,
+      isAdmin: user.is_admin === true,
+    },
   });
 });
 
-// POST /api/auth/login   { name }
-router.post('/login', (req, res) => {
-  try {
-    const { name } = req.body || {};
-    if (!name || name.trim().length < 2) {
-      return res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres.' });
-    }
-
-    const db      = getDb();
-    const trimmed = name.trim();
-
-    let user = db.prepare('SELECT * FROM users WHERE name = ? COLLATE NOCASE').get(trimmed);
-    if (!user) {
-      const result = db.prepare('INSERT INTO users (name) VALUES (?)').run(trimmed);
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(Number(result.lastInsertRowid));
-    }
-
-    res.cookie('user_id', String(user.id), { ...COOKIE_OPTS, maxAge: 60 * 60 * 24 * 90 * 1000 });
-    res.json({ id: user.id, name: user.name });
-  } catch (err) {
-    console.error('[auth/login]', err);
-    res.status(500).json({ error: 'Error interno.' });
-  }
+// POST /api/auth/login — no longer used (OAuth flow is client-side via Supabase)
+router.post('/login', (_req, res) => {
+  res.status(410).json({ error: 'Cookie-based login is no longer supported. Use Google OAuth.' });
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout — no longer needed (Supabase client handles sign-out)
 router.post('/logout', (_req, res) => {
-  res.clearCookie('user_id', { path: '/' });
-  res.clearCookie('admin_token', { path: '/' });
   res.json({ ok: true });
 });
 
