@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, LogOut, Trophy, Home as HomeIcon, Target, LayoutGrid, BarChart3, Settings, Menu, X } from 'lucide-react';
+import { Moon, Sun, LogOut, Trophy, Home as HomeIcon, Target, LayoutGrid, BarChart3, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -30,11 +30,10 @@ export default function Sidebar({ user, onLogout }) {
   }
 
   const links = [
-    { href: '/',            label: 'Home',        Icon: HomeIcon },
-    { href: '/predictions', label: 'Predictions', Icon: Target },
+    { href: '/',            label: 'Home',        Icon: HomeIcon  },
+    { href: '/predictions', label: 'Predictions', Icon: Target    },
     { href: '/groups',      label: 'Groups',      Icon: LayoutGrid },
     { href: '/leaderboard', label: 'Standings',   Icon: BarChart3 },
-    ...(user?.isAdmin ? [{ href: '/admin', label: 'Admin', Icon: Settings }] : []),
   ];
 
   const SidebarInner = (

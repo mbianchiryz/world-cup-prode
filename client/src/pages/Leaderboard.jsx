@@ -208,7 +208,7 @@ export default function Leaderboard() {
       <Card>
         <CardHeader className="pb-2">
           <CardDescription className="text-xs">
-            Click a player's name to see their picks on finished matches.
+            Click a player's name to see their picks on finished matches. Tiebreakers: more exact picks → more other scoring picks → name.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -217,39 +217,58 @@ export default function Leaderboard() {
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <TableHead>Player</TableHead>
-                <TableHead className="text-center">Exact</TableHead>
-                <TableHead className="text-center">Winner</TableHead>
+                <TableHead className="text-center" title="Exact-score picks (7 pts each)">Exact</TableHead>
+                <TableHead className="text-center" title="Other scoring picks (2, 3 or 5 pts)">Hits</TableHead>
                 <TableHead className="text-center font-bold">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.standings.map((s, i) => (
-                <TableRow
-                  key={s.id}
-                  className={cn(
-                    selectedPlayer?.id === s.id && 'bg-secondary/60',
-                  )}
-                >
-                  <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell>
-                    <button
-                      onClick={() => setSelected(s)}
-                      className="text-left group flex flex-col gap-0.5 hover:opacity-80 transition-opacity"
-                    >
-                      <div className="flex items-center gap-1 font-medium group-hover:underline underline-offset-2">
-                        {s.name}
-                        <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              {data.standings.map((s, i) => {
+                const prev = data.standings[i - 1];
+                const next = data.standings[i + 1];
+                const tiedWithPrev = prev && prev.total === s.total;
+                const tiedWithNext = next && next.total === s.total;
+                const isInTieGroup  = tiedWithPrev || tiedWithNext;
+                return (
+                  <TableRow
+                    key={s.id}
+                    className={cn(
+                      selectedPlayer?.id === s.id && 'bg-secondary/60',
+                    )}
+                  >
+                    <TableCell className="font-medium text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        {i + 1}
+                        {isInTieGroup && (
+                          <span
+                            className="text-[9px] px-1 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold"
+                            title="Tied on points — separated by tiebreaker"
+                          >
+                            TB
+                          </span>
+                        )}
                       </div>
-                      {s.pickedChampion && (
-                        <div className="text-xs text-muted-foreground">🏆 {s.pickedChampion}</div>
-                      )}
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-center text-muted-foreground">{s.exact ?? 0}</TableCell>
-                  <TableCell className="text-center text-muted-foreground">{s.winner ?? 0}</TableCell>
-                  <TableCell className="text-center font-bold text-lg">{s.total ?? 0}</TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => setSelected(s)}
+                        className="text-left group flex flex-col gap-0.5 hover:opacity-80 transition-opacity"
+                      >
+                        <div className="flex items-center gap-1 font-medium group-hover:underline underline-offset-2">
+                          {s.name}
+                          <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        {s.pickedChampion && (
+                          <div className="text-xs text-muted-foreground">🏆 {s.pickedChampion}</div>
+                        )}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">{s.exact ?? 0}</TableCell>
+                    <TableCell className="text-center text-muted-foreground">{s.result ?? 0}</TableCell>
+                    <TableCell className="text-center font-bold text-lg">{s.total ?? 0}</TableCell>
+                  </TableRow>
+                );
+              })}
               {data.standings.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">

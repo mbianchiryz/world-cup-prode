@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  || 'https://vswemrcilltarbetmlwu.supabase.co';
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON || 'sb_publishable_Rv96tWoHN6FkyL44noEEfQ_OGgFm5Js';
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON;
+
+if (!SUPABASE_URL || !SUPABASE_ANON) {
+  throw new Error(
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON env vars. ' +
+    'Set them in client/.env (locally) or in Amplify Environment variables (production).'
+  );
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);

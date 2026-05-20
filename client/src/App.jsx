@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
-import Sidebar      from '@/components/Sidebar';
-import Login        from '@/pages/Login';
-import Home         from '@/pages/Home';
-import Predictions  from '@/pages/Predictions';
-import Groups       from '@/pages/Groups';
-import Leaderboard  from '@/pages/Leaderboard';
-import Admin        from '@/pages/Admin';
+import Sidebar from '@/components/Sidebar';
+import Login   from '@/pages/Login';
+
+// Code-split routes so the initial bundle stays small. Each page becomes its own chunk.
+const Home        = lazy(() => import('@/pages/Home'));
+const Predictions = lazy(() => import('@/pages/Predictions'));
+const Groups      = lazy(() => import('@/pages/Groups'));
+const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+
+function PageFallback() {
+  return <div className="text-muted-foreground">Loading…</div>;
+}
 
 export default function App() {
   const [user, setUser]     = useState(null);
@@ -40,24 +45,24 @@ export default function App() {
 
   // Build a user object compatible with existing components
   const appUser = {
-    id:      user.id,
-    name:    user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-    email:   user.email,
-    isAdmin: false,  // will be fetched from profiles table later
+    id:    user.id,
+    name:  user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+    email: user.email,
   };
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} />
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
-        <Routes>
-          <Route path="/"            element={<Home />} />
-          <Route path="/predictions" element={<Predictions />} />
-          <Route path="/groups"      element={<Groups />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/admin"       element={appUser.isAdmin ? <Admin /> : <Navigate to="/" replace />} />
-          <Route path="*"            element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/"            element={<Home />} />
+            <Route path="/predictions" element={<Predictions />} />
+            <Route path="/groups"      element={<Groups />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="*"            element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

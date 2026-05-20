@@ -1,6 +1,7 @@
 /**
  * One-time seed script — inserts all 104 World Cup 2026 matches into Supabase.
- * Run once after creating the schema:  node server/scripts/seed-matches.js
+ * Run once after creating the schema:  node scripts/seed-matches.js
+ * Needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars (or a /scripts/.env file).
  */
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
@@ -9,7 +10,7 @@ import { fileURLToPath } from 'url';
 
 // Load .env manually (no dotenv dependency needed)
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const envPath = resolve(__dirname, '../.env');
+const envPath = resolve(__dirname, '.env');
 try {
   readFileSync(envPath, 'utf8').split('\n').forEach((line) => {
     const [k, ...v] = line.split('=');

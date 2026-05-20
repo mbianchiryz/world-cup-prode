@@ -268,11 +268,50 @@ function BracketView({ matches, preds, onSave }) {
   const finalMatch = matches.find((m) => m.stage === 'final');
   const thirdMatch = matches.find((m) => m.stage === '3rd');
 
-  return (
-    <div className="overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-3 items-stretch" style={{ minHeight: '680px', minWidth: '960px' }}>
+  // ── Mobile: stacked rounds (each round as its own section) ──────────────────
+  const mobileBracket = (
+    <div className="md:hidden space-y-5">
+      {MAIN_ROUNDS.map((round) => {
+        const roundMatches = matches
+          .filter((m) => m.stage === round.stage)
+          .sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
+        if (!roundMatches.length) return null;
+        return (
+          <section key={round.key}>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pb-2 mb-2 border-b">
+              {round.label}
+            </h3>
+            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+              {roundMatches.map((m) => (
+                <BracketTile key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+      {finalMatch && (
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-widest text-primary pb-2 mb-2 border-b border-primary/30 flex items-center gap-1">
+            🏆 World Cup Final
+          </h3>
+          <BracketTile match={finalMatch} pred={preds[finalMatch.id]} onSave={onSave} />
+        </section>
+      )}
+      {thirdMatch && (
+        <section>
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pb-2 mb-2 border-b flex items-center gap-1">
+            🥉 3rd Place Play-off
+          </h3>
+          <BracketTile match={thirdMatch} pred={preds[thirdMatch.id]} onSave={onSave} />
+        </section>
+      )}
+    </div>
+  );
 
-        {/* Main rounds: R32 → R16 → QF → SF */}
+  // ── Desktop: horizontal bracket columns ─────────────────────────────────────
+  const desktopBracket = (
+    <div className="hidden md:block overflow-x-auto pb-4 -mx-1 px-1">
+      <div className="flex gap-3 items-stretch" style={{ minHeight: '680px', minWidth: '960px' }}>
         {MAIN_ROUNDS.map((round) => {
           const roundMatches = matches
             .filter((m) => m.stage === round.stage)
@@ -291,41 +330,47 @@ function BracketView({ matches, preds, onSave }) {
           );
         })}
 
-        {/* Final column: Final at 50% (between SFs), 3rd place at 75% (beside 2nd SF) */}
+        {/* Final column: Final at 50%, 3rd place at 75% */}
         <div className="flex flex-col flex-1 min-w-[200px]">
           <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
             Final
           </div>
           <div className="flex-1 relative">
-
-            {/* 🏆 Final — centered at 50% of column height (between the two semi-finals) */}
             <div className="absolute inset-x-0 flex flex-col gap-1.5"
                  style={{ top: '50%', transform: 'translateY(-50%)' }}>
               <div className="flex items-center justify-center gap-1 text-xs font-bold text-primary tracking-wide">
                 🏆 World Cup Final
               </div>
-              {finalMatch && (
-                <BracketTile match={finalMatch} pred={preds[finalMatch.id]} onSave={onSave} />
-              )}
+              {finalMatch && <BracketTile match={finalMatch} pred={preds[finalMatch.id]} onSave={onSave} />}
             </div>
-
-            {/* 🥉 3rd Place — at 75% (aligned alongside the second semi-final) */}
             <div className="absolute inset-x-0 flex flex-col gap-1.5"
                  style={{ top: '75%', transform: 'translateY(-50%)' }}>
               <div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 🥉 3rd Place Play-off
               </div>
-              {thirdMatch && (
-                <BracketTile match={thirdMatch} pred={preds[thirdMatch.id]} onSave={onSave} />
-              )}
+              {thirdMatch && <BracketTile match={thirdMatch} pred={preds[thirdMatch.id]} onSave={onSave} />}
             </div>
-
           </div>
         </div>
-
       </div>
     </div>
   );
+
+  return (
+    <>
+      {mobileBracket}
+      {desktopBracket}
+    </>
+  );
+}
+
+// ── Helper: is a match still pickable & unpicked? ─────────────────────────────
+function isPending(match, pred) {
+  if (pred) return false;
+  if (match.finished) return false;
+  if (isLocked(match.match_time)) return false;
+  if (match.home_team === 'TBD' || match.away_team === 'TBD') return false;
+  return true;
 }
 
 // ── Sub-tab pill bar ──────────────────────────────────────────────────────────
@@ -351,14 +396,15 @@ function PillBar({ options, value, onChange }) {
 }
 
 // ── Group Stage section ───────────────────────────────────────────────────────
-function GroupStageSection({ matches, preds, onSave }) {
+function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
   const [md, setMd] = useState('all');
 
   const filtered = useMemo(() => {
-    const group = matches.filter((m) => m.stage === 'group');
-    if (md === 'all') return group;
-    return group.filter((m) => m.matchday === Number(md));
-  }, [matches, md]);
+    let list = matches.filter((m) => m.stage === 'group');
+    if (md !== 'all') list = list.filter((m) => m.matchday === Number(md));
+    if (pendingOnly)  list = list.filter((m) => isPending(m, preds[m.id]));
+    return list;
+  }, [matches, md, preds, pendingOnly]);
 
   const mdOptions = [
     { value: 'all', label: 'All Matches' },
@@ -370,17 +416,31 @@ function GroupStageSection({ matches, preds, onSave }) {
   return (
     <div className="space-y-4">
       <PillBar options={mdOptions} value={md} onChange={setMd} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        {filtered.map((m) => (
-          <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <EmptyState pendingOnly={pendingOnly} />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {filtered.map((m) => (
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ pendingOnly }) {
+  return (
+    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+      {pendingOnly
+        ? '🎉 All matches in this section have a pick — nothing pending here.'
+        : 'No matches to show in this section.'}
     </div>
   );
 }
 
 // ── Knockout section ──────────────────────────────────────────────────────────
-function KnockoutSection({ matches, preds, onSave }) {
+function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
   const [view, setView] = useState('bracket');
 
   const viewOptions = [
@@ -392,7 +452,11 @@ function KnockoutSection({ matches, preds, onSave }) {
     { value: 'finals',  label: 'Finals'          },
   ];
 
-  const knockoutMatches = matches.filter((m) => m.stage !== 'group');
+  const knockoutMatches = useMemo(() => {
+    let list = matches.filter((m) => m.stage !== 'group');
+    if (pendingOnly) list = list.filter((m) => isPending(m, preds[m.id]));
+    return list;
+  }, [matches, preds, pendingOnly]);
 
   const filtered = useMemo(() => {
     if (view === 'bracket') return knockoutMatches;
@@ -403,7 +467,9 @@ function KnockoutSection({ matches, preds, onSave }) {
   return (
     <div className="space-y-4">
       <PillBar options={viewOptions} value={view} onChange={setView} />
-      {view === 'bracket' ? (
+      {pendingOnly && knockoutMatches.length === 0 ? (
+        <EmptyState pendingOnly />
+      ) : view === 'bracket' ? (
         <BracketView matches={knockoutMatches} preds={preds} onSave={onSave} />
       ) : view === 'finals' ? (
         /* Finals view: Final + 3rd place with distinct labels */
@@ -445,7 +511,8 @@ export default function Predictions() {
   const [preds, setPreds]     = useState({});
   const [champ, setChamp]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState('group'); // 'group' | 'knockout'
+  const [section, setSection] = useState('group');     // 'group' | 'knockout'
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -532,8 +599,9 @@ export default function Predictions() {
         </Card>
       )}
 
-      {/* Top-level section switcher */}
-      <div className="flex gap-1 p-1 rounded-xl bg-secondary w-fit">
+      {/* Top-level section switcher + pending picks toggle */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 p-1 rounded-xl bg-secondary w-fit">
         {[
           { value: 'group',    label: '⚽ Group Stage' },
           { value: 'knockout', label: '🏆 Knockout'    },
@@ -551,13 +619,29 @@ export default function Predictions() {
             {s.label}
           </button>
         ))}
+        </div>
+
+        {/* Pending picks toggle — applies to whichever section is active */}
+        <button
+          onClick={() => setPendingOnly((v) => !v)}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
+            pendingOnly
+              ? 'bg-amber-500/15 border-amber-500/50 text-amber-600 dark:text-amber-400'
+              : 'bg-background border-border text-muted-foreground hover:text-foreground'
+          )}
+          title="Show only matches you haven't picked yet"
+        >
+          {pendingOnly ? '⏰' : '📋'}
+          {pendingOnly ? 'Pending picks only' : 'Show pending only'}
+        </button>
       </div>
 
       {/* Content */}
       {section === 'group' ? (
-        <GroupStageSection matches={matches} preds={preds} onSave={savePred} />
+        <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
       ) : (
-        <KnockoutSection matches={matches} preds={preds} onSave={savePred} />
+        <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
       )}
     </div>
   );

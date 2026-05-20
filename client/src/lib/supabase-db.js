@@ -116,7 +116,13 @@ export async function getLeaderboard() {
     };
   });
 
-  standings.sort((a, b) => b.total - a.total || b.exact - a.exact);
+  // Tiebreakers: total → exact-score picks → other scoring picks → name (alphabetical)
+  standings.sort((a, b) =>
+    b.total - a.total
+    || b.exact - a.exact
+    || b.result - a.result
+    || (a.name || '').localeCompare(b.name || '')
+  );
   return { standings, champion };
 }
 
