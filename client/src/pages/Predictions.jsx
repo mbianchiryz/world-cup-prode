@@ -198,7 +198,6 @@ function MatchCard({ match, pred, onSave }) {
     <div style={{
       background: 'var(--bg)',
       border: `1.5px solid var(--line)`,
-      borderTop: `3px solid ${gColor}`,
       borderRadius: 'var(--r)',
       overflow: 'hidden',
     }}>
@@ -649,7 +648,9 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
 }
 
 // ── Section switcher button ───────────────────────────────────────────────────
-function SectionBtn({ active, onClick, children }) {
+function SectionBtn({ active, onClick, children, accent }) {
+  const bg = active ? (accent || 'var(--ink)') : 'transparent';
+  const fg = active ? (accent === 'var(--yellow)' ? 'var(--ink)' : 'var(--bg)') : 'var(--muted)';
   return (
     <button
       onClick={onClick}
@@ -657,11 +658,12 @@ function SectionBtn({ active, onClick, children }) {
         all: 'unset', cursor: 'pointer',
         padding: '8px 18px',
         borderRadius: 8,
-        background: active ? 'var(--ink)' : 'transparent',
-        color: active ? 'var(--bg)' : 'var(--muted)',
+        background: bg,
+        color: fg,
         fontWeight: 700, fontSize: 13,
         letterSpacing: '-0.01em',
         transition: 'all .12s',
+        whiteSpace: 'nowrap',
       }}
     >{children}</button>
   );
@@ -688,6 +690,170 @@ function PendingToggle({ active, onClick }) {
     >
       {active ? '⏰' : '📋'}
       {active ? 'Pending only' : 'Show pending only'}
+    </button>
+  );
+}
+
+// ── Champion Section ──────────────────────────────────────────────────────────
+function ChampionSection({ champ, onSave }) {
+  const [search, setSearch] = useState('');
+  const teams = useMemo(() => (champ.teams || []).sort(), [champ.teams]);
+
+  // Simple popularity mock — in a real setup you'd fetch this from Supabase
+  const popularTeams = ['Argentina', 'Brazil', 'France', 'England', 'Spain', 'Germany', 'Portugal', 'Netherlands'];
+  const popularVisible = popularTeams.filter((t) => teams.includes(t));
+  const maxPct = 22;
+  const popularPcts = { Argentina: 22, Brazil: 19, France: 14, England: 11, Spain: 9, Germany: 7, Portugal: 6, Netherlands: 5 };
+
+  const filtered = teams.filter((t) => t.toLowerCase().includes(search.toLowerCase()));
+  const isLocked = champ.locked || !!champ.champion;
+  const current = champ.champion || champ.prediction;
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'start' }}>
+      {/* Left: yellow hero panel */}
+      <div style={{
+        background: 'var(--yellow)', color: 'var(--ink)',
+        borderRadius: 'var(--r-xl)', padding: '32px 30px',
+        position: 'relative', overflow: 'hidden', minHeight: 340,
+      }}>
+        {/* Decorative 26 */}
+        <div style={{
+          position: 'absolute', right: -20, bottom: -30,
+          fontFamily: 'var(--display)', fontSize: 260, lineHeight: 0.8,
+          letterSpacing: '-0.06em', color: 'rgba(0,0,0,0.07)',
+          pointerEvents: 'none', userSelect: 'none',
+        }}>26</div>
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="label" style={{ opacity: 0.6, marginBottom: 14 }}>WHO LIFTS THE TROPHY · +50 PTS</div>
+          <h2 style={{
+            fontFamily: 'var(--display)', fontSize: 46,
+            lineHeight: 0.9, letterSpacing: '-0.04em', margin: '0 0 14px',
+          }}>Pick the<br />champion.</h2>
+          <p style={{ fontSize: 13, lineHeight: 1.55, opacity: 0.75, margin: '0 0 28px', maxWidth: 280 }}>
+            Your single highest-value pick. Locks at the start of the Round of 16 — change it any time before that.
+          </p>
+
+          {current ? (
+            <div style={{
+              background: 'var(--ink)', color: 'var(--bg)',
+              borderRadius: 'var(--r)', padding: '14px 18px',
+              display: 'inline-flex', flexDirection: 'column', gap: 4, minWidth: 200,
+            }}>
+              <div className="label" style={{ color: '#8B8B90', fontSize: 9.5 }}>
+                {champ.champion ? 'TOURNAMENT CHAMPION' : 'YOUR PICK'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.02em' }}>
+                <span style={{ fontSize: 28 }}>{getFlag(current)}</span>
+                {current.toUpperCase()}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              border: '2px dashed rgba(0,0,0,0.25)', borderRadius: 'var(--r)',
+              padding: '14px 18px', display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontWeight: 600, fontSize: 14, opacity: 0.65,
+            }}>
+              Select a team →
+            </div>
+          )}
+
+          {isLocked && (
+            <div className="label" style={{ marginTop: 14, opacity: 0.6, display: 'flex', alignItems: 'center', gap: 5 }}>
+              {LOCK_SVG} {champ.champion ? 'TOURNAMENT DECIDED' : 'PICKS LOCKED'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: popular picks + team grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Popular picks */}
+        <div>
+          <div className="label" style={{ color: 'var(--muted)', marginBottom: 14 }}>POPULAR PICKS · OFFICE POOL</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {popularVisible.slice(0, 6).map((t) => {
+              const pct = popularPcts[t] || 3;
+              const isSelected = t === current;
+              return (
+                <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 130, flexShrink: 0 }}>
+                    <span style={{ fontSize: 16 }}>{getFlag(t)}</span>
+                    <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500 }}>{t}</span>
+                  </div>
+                  <div style={{ flex: 1, height: 6, background: 'var(--bg-2)', borderRadius: 999 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 999,
+                      background: isSelected ? 'var(--ink)' : 'var(--line)',
+                      width: `${(pct / maxPct) * 100}%`,
+                      transition: 'width .3s',
+                    }} />
+                  </div>
+                  <div className="label" style={{ color: 'var(--muted)', fontSize: 10, width: 28, textAlign: 'right' }}>{pct}%</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* All 48 teams grid */}
+        {!isLocked && (
+          <div>
+            <div className="label" style={{ color: 'var(--muted)', marginBottom: 12 }}>ALL {teams.length} TEAMS</div>
+            <input
+              type="text"
+              placeholder="Search team…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '9px 14px', marginBottom: 10,
+                background: 'var(--bg)', border: '1.5px solid var(--line)',
+                borderRadius: 'var(--r-sm)', fontSize: 13,
+                fontFamily: 'var(--sans)', color: 'var(--ink)', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+              maxHeight: 260, overflowY: 'auto',
+            }}>
+              {filtered.map((t) => {
+                const isSel = t === current;
+                return (
+                  <TeamBtn key={t} team={t} selected={isSel} onClick={() => !isLocked && onSave(t)} />
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TeamBtn({ team, selected, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        all: 'unset', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '7px 10px',
+        borderRadius: 'var(--r-sm)',
+        background: selected ? 'var(--ink)' : hovered ? 'var(--bg-2)' : 'var(--bg)',
+        color: selected ? 'var(--bg)' : 'var(--ink)',
+        border: `1.5px solid ${selected ? 'var(--ink)' : 'var(--line)'}`,
+        fontSize: 12, fontWeight: selected ? 700 : 500,
+        transition: 'all .1s',
+        overflow: 'hidden',
+      }}
+    >
+      <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(team)}</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
     </button>
   );
 }
@@ -775,66 +941,34 @@ export default function Predictions() {
         </div>
       </div>
 
-      {/* Champion picker */}
-      {champ && (
-        <div style={{
-          background: 'var(--yellow)', color: 'var(--ink)',
-          borderRadius: 'var(--r)', padding: '16px 20px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-          flexWrap: 'wrap',
-        }}>
-          <div>
-            <div className="label" style={{ marginBottom: 4, opacity: 0.7 }}>🏆 CHAMPION PICK · +50 PTS</div>
-            {champ.champion ? (
-              <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em' }}>
-                {getFlag(champ.champion)} {champ.champion} — Champion!
-              </div>
-            ) : champ.locked ? (
-              <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em' }}>
-                {LOCK_SVG} Locked · {champ.prediction ? `${getFlag(champ.prediction)} ${champ.prediction}` : 'No pick made'}
-              </div>
-            ) : (
-              <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.02em' }}>
-                {champ.prediction ? `${getFlag(champ.prediction)} ${champ.prediction}` : 'Pick your champion →'}
-              </div>
-            )}
-          </div>
-          {!champ.locked && !champ.champion && (
-            <Select value={champ.prediction || ''} onValueChange={saveChamp}>
-              <SelectTrigger style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', width: 200, fontWeight: 600 }}>
-                <SelectValue placeholder="Choose a team" />
-              </SelectTrigger>
-              <SelectContent>
-                {(champ.teams || []).sort().map((t) => (
-                  <SelectItem key={t} value={t}>{getFlag(t)} {t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
-
-      {/* Section switcher + pending toggle */}
+      {/* Section switcher */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
         <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 'var(--r)', background: 'var(--bg-2)', border: '1.5px solid var(--line)' }}>
           {[
-            { value: 'group',    label: '⚽ Group Stage' },
-            { value: 'knockout', label: '🏆 Knockout'    },
+            { value: 'group',    label: 'Group stage'   },
+            { value: 'knockout', label: 'Knockout'      },
+            { value: 'champion', label: 'Champion pick' },
           ].map((s) => (
-            <SectionBtn key={s.value} active={section === s.value} onClick={() => setSection(s.value)}>
+            <SectionBtn key={s.value} active={section === s.value} accent={s.value === 'champion' ? 'var(--yellow)' : null} onClick={() => setSection(s.value)}>
               {s.label}
             </SectionBtn>
           ))}
         </div>
 
-        <PendingToggle active={pendingOnly} onClick={() => setPendingOnly((v) => !v)} />
+        {section !== 'champion' && (
+          <PendingToggle active={pendingOnly} onClick={() => setPendingOnly((v) => !v)} />
+        )}
       </div>
 
       {/* Content */}
-      {section === 'group' ? (
+      {section === 'group' && (
         <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
-      ) : (
+      )}
+      {section === 'knockout' && (
         <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
+      )}
+      {section === 'champion' && champ && (
+        <ChampionSection champ={champ} onSave={saveChamp} />
       )}
     </div>
   );

@@ -17,10 +17,10 @@ function IBars(s = 18) {
 }
 
 const LINKS = [
-  { href: '/',            label: 'Home',      icon: IHome,   color: 'var(--ink)',  hoverBg: '#1A1A22' },
-  { href: '/predictions', label: 'My Picks',  icon: ITarget, color: 'var(--red)',  hoverBg: '#1A1A22' },
-  { href: '/groups',      label: 'Groups',    icon: IGrid,   color: 'var(--blue)', hoverBg: '#1A1A22' },
-  { href: '/leaderboard', label: 'Standings', icon: IBars,   color: 'var(--green)',hoverBg: '#1A1A22' },
+  { href: '/',            label: 'Home',        icon: IHome,   color: 'var(--ink)'   },
+  { href: '/predictions', label: 'Predictions', icon: ITarget, color: 'var(--red)'   },
+  { href: '/groups',      label: 'Groups',      icon: IGrid,   color: 'var(--blue)'  },
+  { href: '/leaderboard', label: 'Standings',   icon: IBars,   color: 'var(--green)' },
 ];
 
 function NavLink({ link, active, onClick }) {
@@ -46,6 +46,7 @@ function NavLink({ link, active, onClick }) {
         letterSpacing: '-0.01em',
         transition: 'all .15s',
         width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       <span style={{ display: 'inline-flex' }}>{link.icon(18)}</span>
@@ -59,7 +60,7 @@ function NavLink({ link, active, onClick }) {
 
 function SidebarContent({ user, onLogout, location, navigate }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Brand */}
       <div style={{ padding: '20px 20px 18px', borderBottom: '1px solid var(--line-2)' }}>
         <div className="label" style={{ color: '#6B6B70', marginBottom: 8 }}>RYZ LABS · OFFICE POOL</div>
@@ -87,7 +88,7 @@ function SidebarContent({ user, onLogout, location, navigate }) {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <nav style={{ flex: 1, padding: 10, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
         {LINKS.map((l) => (
           <NavLink
             key={l.href}
