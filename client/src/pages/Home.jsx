@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getFlag } from '@/lib/matches-data';
 import { getMatches, getLeaderboard } from '@/lib/supabase-db';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Trophy, Calendar, MapPin, Users, Target, ArrowRight } from 'lucide-react';
 
+// ── Countdown hook ────────────────────────────────────────────────────────────
 function useCountdown(target) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -15,172 +13,466 @@ function useCountdown(target) {
   if (!target) return null;
   const ms = new Date(target).getTime() - now;
   if (ms <= 0) return { done: true };
-  const days  = Math.floor(ms / 86_400_000);
-  const hours = Math.floor((ms % 86_400_000) / 3_600_000);
-  const mins  = Math.floor((ms % 3_600_000) / 60_000);
-  const secs  = Math.floor((ms % 60_000) / 1000);
-  return { days, hours, mins, secs };
+  return {
+    days:  Math.floor(ms / 86_400_000),
+    hours: Math.floor((ms % 86_400_000) / 3_600_000),
+    mins:  Math.floor((ms % 3_600_000) / 60_000),
+    secs:  Math.floor((ms % 60_000) / 1000),
+  };
 }
 
-function NextMatchHero({ match }) {
-  const cd = useCountdown(match?.match_time);
-  if (!match) return null;
+function fmtDateShort(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+}
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+function fmtWeekday(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+}
+
+const ARROW = (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+  </svg>
+);
+const BOLT = (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="13 2 4 14 11 14 9 22 20 10 13 10"/>
+  </svg>
+);
+
+const FACTS = [
+  { label: 'Teams',    value: '48',  sub: 'First ever 48-team edition', color: 'var(--red)' },
+  { label: 'Matches',  value: '104', sub: 'Expanded from 64',           color: 'var(--blue)' },
+  { label: 'Nations',  value: '3',   sub: 'USA · Canada · Mexico',      color: 'var(--green)' },
+  { label: 'Days',     value: '39',  sub: 'Jun 11 – Jul 19, 2026',      color: 'var(--yellow)' },
+];
+
+const SCORING = [
+  { pts: '+7', text: 'Exact score — both goals correct' },
+  { pts: '+5', text: 'Correct result + one team\'s goals' },
+  { pts: '+3', text: 'Correct win / draw / loss' },
+  { pts: '+2', text: 'One team\'s goals (wrong result)' },
+  { pts: '+50', text: 'Pick the tournament champion' },
+];
+const SCORING_COLORS = ['var(--green)', 'var(--cyan)', 'var(--blue)', 'var(--orange)', 'var(--yellow)'];
+
+const CITIES = [
+  { name: 'New York',     country: 'USA', color: 'var(--red)' },
+  { name: 'Los Angeles',  country: 'USA', color: 'var(--blue)' },
+  { name: 'Dallas',       country: 'USA', color: 'var(--green)' },
+  { name: 'Miami',        country: 'USA', color: 'var(--pink)' },
+  { name: 'Mexico City',  country: 'MEX', color: 'var(--yellow)' },
+  { name: 'Toronto',      country: 'CAN', color: 'var(--cyan)' },
+];
+
+// ── Hero ──────────────────────────────────────────────────────────────────────
+function Hero({ nextMatch, onNavigate }) {
+  const cd = useCountdown(nextMatch?.match_time);
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="bg-primary text-primary-foreground">
-        <CardDescription className="text-primary-foreground/70 uppercase tracking-wider text-xs font-semibold">
-          ⚡ Next Up · {match.group_name ? `Group ${match.group_name} · ` : ''}Matchday {match.matchday ?? '–'}
-        </CardDescription>
-        <CardTitle className="text-2xl">Kickoff in</CardTitle>
-      </CardHeader>
+    <div style={{
+      background: 'var(--ink)',
+      color: 'var(--bg)',
+      borderRadius: 'var(--r-xl)',
+      padding: '40px 44px',
+      position: 'relative',
+      overflow: 'hidden',
+      minHeight: 340,
+    }}>
+      {/* Decorative 26 */}
+      <div style={{
+        position: 'absolute',
+        right: -30,
+        top: -50,
+        fontFamily: 'var(--display)',
+        fontSize: 480,
+        lineHeight: 0.82,
+        letterSpacing: '-0.06em',
+        color: 'var(--yellow)',
+        opacity: 0.9,
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}>26</div>
 
-      <CardContent className="p-6 space-y-6">
-        {/* Teams */}
-        <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-5xl sm:text-6xl">{getFlag(match.home_team)}</span>
-            <span className="font-semibold uppercase tracking-wide">{match.home_team}</span>
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        display: 'grid',
+        gridTemplateColumns: nextMatch ? '1.1fr 1fr' : '1fr',
+        gap: 32,
+        alignItems: 'stretch',
+        minHeight: 260,
+      }}>
+        {/* Left */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div className="label" style={{ color: '#8B8B90', marginBottom: 14 }}>
+              <span style={{ color: 'var(--yellow)' }}>●</span> SEASON 2026 · RYZ LABS POOL
+            </div>
+            <h1 style={{
+              fontFamily: 'var(--display)',
+              fontSize: 'clamp(52px, 6vw, 84px)',
+              lineHeight: 0.88,
+              letterSpacing: '-0.045em',
+              margin: '0 0 16px',
+            }}>
+              PREDICT<br />EVERY<br />MATCH.
+            </h1>
+            <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: '#C9C6BB', margin: 0 }}>
+              104 matches. 48 nations. One champion. Lock in your picks for the entire bracket — exact scores win.
+            </p>
           </div>
-          <div className="text-3xl font-bold text-muted-foreground">VS</div>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-5xl sm:text-6xl">{getFlag(match.away_team)}</span>
-            <span className="font-semibold uppercase tracking-wide">{match.away_team}</span>
+          <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => onNavigate('/predictions')}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'var(--yellow)', color: 'var(--ink)',
+                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
+                padding: '13px 22px',
+              }}
+            >
+              Continue picks {ARROW}
+            </button>
+            <button
+              onClick={() => onNavigate('/leaderboard')}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                border: '1.5px solid #3A3A45', color: '#fff',
+                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
+                padding: '13px 22px',
+              }}
+            >
+              Standings
+            </button>
           </div>
         </div>
 
-        {/* Countdown */}
-        {cd && !cd.done && (
-          <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
-            {[
-              { label: 'Days', value: cd.days },
-              { label: 'Hours', value: cd.hours },
-              { label: 'Mins', value: cd.mins },
-              { label: 'Secs', value: cd.secs },
-            ].map((u) => (
-              <div key={u.label} className="rounded-md border bg-secondary/50 p-3 text-center">
-                <div className="text-2xl sm:text-3xl font-bold tabular-nums">{String(u.value).padStart(2, '0')}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{u.label}</div>
+        {/* Right: next match card */}
+        {nextMatch && (
+          <div style={{
+            background: 'var(--bg)',
+            color: 'var(--ink)',
+            borderRadius: 'var(--r-lg)',
+            padding: 22,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="label" style={{ color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {BOLT} NEXT KICKOFF
               </div>
-            ))}
+              <div className="label" style={{ color: 'var(--muted)' }}>
+                {nextMatch.group_name ? `GRP ${nextMatch.group_name} · ` : ''}MD {nextMatch.matchday ?? '–'}
+              </div>
+            </div>
+
+            {/* Teams */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                <span style={{ fontSize: 36 }}>{getFlag(nextMatch.home_team)}</span>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
+                  {nextMatch.home_team.toUpperCase()}
+                </span>
+              </div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <span style={{ fontSize: 36 }}>{getFlag(nextMatch.away_team)}</span>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
+                  {nextMatch.away_team.toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            {/* Countdown */}
+            {cd && !cd.done && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                {[
+                  { v: cd.days, l: 'DAYS' },
+                  { v: cd.hours, l: 'HRS' },
+                  { v: cd.mins, l: 'MIN' },
+                  { v: cd.secs, l: 'SEC' },
+                ].map((u, i) => (
+                  <div key={i} style={{
+                    background: i === 0 ? 'var(--yellow)' : 'var(--bg-2)',
+                    color: i === 0 ? 'var(--ink)' : 'var(--ink)',
+                    borderRadius: 'var(--r-sm)',
+                    padding: '9px 0 7px',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      fontFamily: 'var(--display)',
+                      fontSize: 26,
+                      lineHeight: 0.95,
+                      letterSpacing: '-0.04em',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>{String(u.v).padStart(2, '0')}</div>
+                    <div className="label" style={{ fontSize: 8.5, marginTop: 3, opacity: 0.7 }}>{u.l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {cd?.done && (
+              <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+                ⚽ Match is live or underway
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              fontSize: 11, color: 'var(--muted)',
+              borderTop: '1px solid var(--line)', paddingTop: 10,
+            }}>
+              <span>{fmtWeekday(nextMatch.match_time)} · {fmtDateShort(nextMatch.match_time)} · {fmtTime(nextMatch.match_time)}</span>
+            </div>
           </div>
         )}
-        {cd?.done && (
-          <div className="text-center text-sm text-muted-foreground">Match is live or kicking off now ⚽</div>
-        )}
-
-        {/* Meta */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
-            {new Date(match.match_time).toLocaleString(undefined, {
-              weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
-          </span>
-        </div>
-
-        <div className="flex justify-center">
-          <Button asChild>
-            <Link to="/predictions">Make your pick <ArrowRight className="ml-1 h-4 w-4" /></Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
-const TOURNAMENT_FACTS = [
-  { Icon: Users,    label: 'Teams',         value: '48',           sub: 'first ever 48-team edition' },
-  { Icon: Target,   label: 'Matches',       value: '104',          sub: 'expanded from 64' },
-  { Icon: MapPin,   label: 'Host nations',  value: '3',            sub: 'USA · Canada · Mexico' },
-  { Icon: Calendar, label: 'Dates',         value: 'Jun 11 – Jul 19', sub: '39 days of football' },
-];
+// ── Facts row ─────────────────────────────────────────────────────────────────
+function FactsRow() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      {FACTS.map((f) => {
+        const isYellow = f.color === 'var(--yellow)';
+        return (
+          <div key={f.label} style={{
+            background: f.color,
+            color: isYellow ? 'var(--ink)' : '#fff',
+            borderRadius: 'var(--r)',
+            padding: '18px 20px',
+            minHeight: 120,
+          }}>
+            <div className="label" style={{ opacity: 0.8, marginBottom: 4 }}>{f.label}</div>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 52, lineHeight: 0.9, letterSpacing: '-0.04em' }}>{f.value}</div>
+            <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85, fontWeight: 500 }}>{f.sub}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
+// ── Recent Results ────────────────────────────────────────────────────────────
 function RecentResults({ matches }) {
   const recent = matches
     .filter((m) => m.finished)
     .sort((a, b) => new Date(b.match_time) - new Date(a.match_time))
     .slice(0, 5);
 
-  if (!recent.length) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent Results</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No matches played yet. Check back after kickoff.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Recent Results</CardTitle>
-        <CardDescription>Last {recent.length} finished matches</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {recent.map((m) => (
-          <div key={m.id} className="flex items-center justify-between rounded-md border p-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-xl">{getFlag(m.home_team)}</span>
-              <span className="text-sm font-medium truncate">{m.home_team}</span>
-            </div>
-            <div className="font-bold tabular-nums px-3">{m.home_score} – {m.away_score}</div>
-            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <span className="text-sm font-medium truncate text-right">{m.away_team}</span>
-              <span className="text-xl">{getFlag(m.away_team)}</span>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <div style={{
+        background: 'var(--ink)', color: 'var(--bg)',
+        padding: '5px 12px',
+        fontFamily: 'var(--mono)', fontSize: 10.5,
+        letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
+      }}>Recent Results</div>
+
+      {recent.length === 0 ? (
+        <div style={{ padding: '28px 20px', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
+          No matches played yet
+        </div>
+      ) : (
+        <div>
+          {recent.map((m, i) => {
+            const homeWin = m.home_score > m.away_score;
+            const awayWin = m.away_score > m.home_score;
+            return (
+              <div key={m.id} style={{
+                display: 'grid',
+                gridTemplateColumns: '50px 1fr auto 1fr 50px',
+                alignItems: 'center',
+                gap: 8,
+                padding: '12px 16px',
+                borderBottom: i < recent.length - 1 ? '1px solid var(--line)' : 'none',
+              }}>
+                <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>
+                  {m.group_name ? `GR ${m.group_name}` : '–'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: homeWin ? 700 : 500 }}>
+                  <span style={{ fontSize: 18 }}>{getFlag(m.home_team)}</span>
+                  <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.home_team}</span>
+                </div>
+                <div style={{
+                  fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 15,
+                  background: 'var(--bg-2)', padding: '3px 10px', borderRadius: 'var(--r-sm)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {m.home_score} – {m.away_score}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end', fontWeight: awayWin ? 700 : 500 }}>
+                  <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{m.away_team}</span>
+                  <span style={{ fontSize: 18 }}>{getFlag(m.away_team)}</span>
+                </div>
+                <div className="label" style={{ color: 'var(--muted)', textAlign: 'right', fontSize: 9.5 }}>
+                  {fmtDateShort(m.match_time)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
-function TopLeaders({ leaderboard }) {
-  const top = (leaderboard.standings || []).slice(0, 3);
-  if (!top.length) return null;
+// ── Top of Pool ───────────────────────────────────────────────────────────────
+function TopOfPool({ standings, onNavigate }) {
+  const top = standings.slice(0, 3);
+  const podiumColors = ['var(--yellow)', 'var(--bg-2)', 'var(--orange)'];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-primary" />
-          Top of the Pool
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {top.map((p, i) => (
-          <div key={p.id} className="flex items-center justify-between rounded-md border p-3">
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold w-6 text-center">{['🥇', '🥈', '🥉'][i]}</span>
-              <div>
-                <div className="font-medium">{p.name}</div>
-                {p.pickedChampion && (
-                  <div className="text-xs text-muted-foreground">🏆 {p.pickedChampion}</div>
-                )}
+    <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <div style={{
+        background: 'var(--ink)', color: 'var(--bg)',
+        padding: '5px 12px',
+        fontFamily: 'var(--mono)', fontSize: 10.5,
+        letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
+      }}>Top of Pool</div>
+
+      {top.length === 0 ? (
+        <div style={{ padding: '28px 20px', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
+          No players yet
+        </div>
+      ) : (
+        <>
+          <div>
+            {top.map((p, i) => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '13px 16px',
+                borderBottom: i < top.length - 1 ? '1px solid var(--line)' : 'none',
+              }}>
+                <div style={{
+                  width: 36, height: 36,
+                  borderRadius: 'var(--r-sm)',
+                  background: podiumColors[i],
+                  color: i === 1 ? 'var(--ink)' : (podiumColors[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff'),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--display)', fontSize: 17, flexShrink: 0,
+                }}>{i + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                  {p.pickedChampion && (
+                    <div className="label" style={{ color: 'var(--muted)', marginTop: 2 }}>
+                      {getFlag(p.pickedChampion)} {p.pickedChampion.toUpperCase()} TO WIN
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  fontFamily: 'var(--display)', fontSize: 26,
+                  letterSpacing: '-0.03em', lineHeight: 1,
+                }}>
+                  {p.total}
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, marginLeft: 3, fontWeight: 500, color: 'var(--muted)' }}>PTS</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onNavigate('/leaderboard')}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '11px 16px',
+              background: 'var(--bg-2)',
+              fontSize: 13, fontWeight: 600,
+              width: '100%', boxSizing: 'border-box',
+            }}
+          >
+            <span>View full standings</span>
+            {ARROW}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Scoring Rules ─────────────────────────────────────────────────────────────
+function ScoringRules() {
+  return (
+    <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <div style={{
+        background: 'var(--ink)', color: 'var(--bg)',
+        padding: '5px 12px',
+        fontFamily: 'var(--mono)', fontSize: 10.5,
+        letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
+      }}>How Scoring Works</div>
+      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {SCORING.map((s, i) => (
+          <div key={s.pts} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              background: SCORING_COLORS[i],
+              color: SCORING_COLORS[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff',
+              borderRadius: 'var(--r-sm)',
+              padding: '3px 10px',
+              fontFamily: 'var(--display)',
+              fontSize: 20,
+              letterSpacing: '-0.03em',
+              minWidth: 64,
+              textAlign: 'center',
+              flexShrink: 0,
+            }}>{s.pts}</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{s.text}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Host Cities ───────────────────────────────────────────────────────────────
+function HostCities() {
+  return (
+    <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      <div style={{
+        background: 'var(--ink)', color: 'var(--bg)',
+        padding: '5px 12px',
+        fontFamily: 'var(--mono)', fontSize: 10.5,
+        letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
+      }}>Host Cities · 16 Stadiums</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        {CITIES.map((c, i) => {
+          const isYellow = c.color === 'var(--yellow)';
+          return (
+            <div key={c.name} style={{
+              background: c.color,
+              color: isYellow ? 'var(--ink)' : '#fff',
+              padding: '16px 14px',
+              minHeight: 80,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderRight: (i % 3 !== 2) ? '1px solid rgba(255,255,255,0.18)' : 'none',
+              borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.18)' : 'none',
+            }}>
+              <div className="label" style={{ opacity: 0.8 }}>{c.country}</div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                {c.name}
               </div>
             </div>
-            <div className="text-right">
-              <div className="font-bold text-lg">{p.total}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">pts</div>
-            </div>
-          </div>
-        ))}
-        <Button variant="ghost" size="sm" asChild className="w-full">
-          <Link to="/leaderboard">See full standings <ArrowRight className="ml-1 h-3 w-3" /></Link>
-        </Button>
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const navigate = useNavigate();
   const [matches, setMatches]         = useState([]);
-  const [leaderboard, setLeaderboard] = useState({ standings: [], champion: null });
+  const [leaderboard, setLeaderboard] = useState({ standings: [] });
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
@@ -196,71 +488,26 @@ export default function Home() {
     [matches]
   );
 
-  if (loading) return <div className="text-muted-foreground">Loading…</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.1em' }}>
+        LOADING…
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">FIFA World Cup 2026</h1>
-        <p className="text-muted-foreground">USA · Canada · Mexico · June 11 – July 19</p>
-      </div>
-
-      {nextMatch && <NextMatchHero match={nextMatch} />}
-
-      {/* Tournament facts */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {TOURNAMENT_FACTS.map(({ Icon, label, value, sub }) => (
-          <Card key={label}>
-            <CardContent className="p-4 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold">{value}</div>
-              <div className="text-xs text-muted-foreground">{sub}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100 }}>
+      <Hero nextMatch={nextMatch} onNavigate={navigate} />
+      <FactsRow />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
         <RecentResults matches={matches} />
-        <TopLeaders leaderboard={leaderboard} />
+        <TopOfPool standings={leaderboard.standings || []} onNavigate={navigate} />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">About the Pool</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            Predict every match of the 2026 World Cup and pick the eventual champion. Results
-            update in real time throughout the tournament.
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-md border p-3">
-              <div className="font-medium text-foreground mb-1">How scoring works</div>
-              <ul className="space-y-0.5 text-xs">
-                <li><b className="text-foreground">+7</b> · perfect score (both teams exact)</li>
-                <li><b className="text-foreground">+5</b> · right result + one team's goals</li>
-                <li><b className="text-foreground">+3</b> · correct win / draw / loss</li>
-                <li><b className="text-foreground">+2</b> · one team's goals (wrong result)</li>
-                <li><b className="text-foreground">+50</b> · pick the champion</li>
-              </ul>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="font-medium text-foreground mb-1">Format</div>
-              <ul className="space-y-0.5 text-xs">
-                <li>12 groups of 4 teams</li>
-                <li>Top 2 + 8 best 3rd advance</li>
-                <li>Round of 32 → Final</li>
-                <li>Opening: Estadio Azteca, CDMX</li>
-                <li>Final: MetLife Stadium, NJ</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <ScoringRules />
+        <HostCities />
+      </div>
     </div>
   );
 }

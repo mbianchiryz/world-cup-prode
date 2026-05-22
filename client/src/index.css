@@ -2,62 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+/* ── PRODE '26 design system ─────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:        #F4EFE3;
+  --bg-2:      #EAE3D2;
+  --ink:       #0A0A0F;
+  --ink-2:     #1A1A22;
+  --muted:     #6B6B70;
+  --line:      #DCD4C2;
+  --line-2:    #2A2A33;
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+  /* Tournament palette */
+  --red:       #E63022;
+  --blue:      #2A3BFF;
+  --green:     #00B852;
+  --pink:      #FF2D87;
+  --yellow:    #FFC700;
+  --cyan:      #00C8E6;
+  --purple:    #6B2BFF;
+  --orange:    #FF6A1A;
+  --mint:      #5DE0A0;
+
+  /* Typography */
+  --display: "Archivo Black", "Helvetica Neue", system-ui, sans-serif;
+  --sans:    "Space Grotesk", "Helvetica Neue", system-ui, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r:    12px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* shadcn compat (kept for Login + any leftover shadcn components) */
+  --background: 43 35% 92%;
+  --foreground: 240 10% 4%;
+  --card: 43 35% 92%;
+  --card-foreground: 240 10% 4%;
+  --popover: 43 35% 92%;
+  --popover-foreground: 240 10% 4%;
+  --primary: 240 10% 4%;
+  --primary-foreground: 43 35% 92%;
+  --secondary: 40 25% 85%;
+  --secondary-foreground: 240 10% 4%;
+  --muted-shadcn: 40 25% 85%;
+  --muted-foreground: 240 4% 42%;
+  --accent: 40 25% 85%;
+  --accent-foreground: 240 10% 4%;
+  --destructive: 4 87% 52%;
+  --destructive-foreground: 43 35% 92%;
+  --border: 38 23% 82%;
+  --input: 38 23% 82%;
+  --ring: 240 10% 4%;
+  --radius: 0.5rem;
 }
 
-@layer base {
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 
-  /* Hide the up/down spinner arrows from number inputs */
-  input[type='number']::-webkit-inner-spin-button,
-  input[type='number']::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  input[type='number'] { -moz-appearance: textfield; }
+* { box-sizing: border-box; }
+::selection { background: var(--ink); color: var(--yellow); }
+
+/* Mono caps label utility */
+.label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Subtle scrollbar */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* Hide number spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; }
+
+/* Pulse animation for live indicator */
+@keyframes pulse-green {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 184, 82, 0.7); }
+  70%  { box-shadow: 0 0 0 8px rgba(0, 184, 82, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 184, 82, 0); }
 }

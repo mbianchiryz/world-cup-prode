@@ -12,7 +12,11 @@ const Groups      = lazy(() => import('@/pages/Groups'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 
 function PageFallback() {
-  return <div className="text-muted-foreground">Loading…</div>;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.12em', color: 'var(--muted)' }}>
+      LOADING…
+    </div>
+  );
 }
 
 export default function App() {
@@ -34,12 +38,11 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const dark = localStorage.getItem('prode_dark') === 'true';
-    document.documentElement.classList.toggle('dark', dark);
-  }, []);
-
-  if (!loaded) return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>;
+  if (!loaded) return (
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.12em', color: 'var(--muted)' }}>
+      LOADING…
+    </div>
+  );
 
   if (!user) return <Login />;
 
@@ -51,9 +54,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} />
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+      <main style={{ flex: 1, minWidth: 0, padding: '32px 36px', overflowX: 'hidden' }}>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/"            element={<Home />} />

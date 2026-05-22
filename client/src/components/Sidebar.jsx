@@ -1,126 +1,260 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, LogOut, Trophy, Home as HomeIcon, Target, LayoutGrid, BarChart3, Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { LogOut, Menu, X } from 'lucide-react';
 
-export default function Sidebar({ user, onLogout }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [isDark, setIsDark]   = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+// ── Icon helpers ──────────────────────────────────────────────────────────────
+function IHome(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>;
+}
+function ITarget(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>;
+}
+function IGrid(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
+}
+function IBars(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="20" x2="5" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14"/></svg>;
+}
 
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains('dark'));
-  }, []);
+const LINKS = [
+  { href: '/',            label: 'Home',      icon: IHome,   color: 'var(--ink)',  hoverBg: '#1A1A22' },
+  { href: '/predictions', label: 'My Picks',  icon: ITarget, color: 'var(--red)',  hoverBg: '#1A1A22' },
+  { href: '/groups',      label: 'Groups',    icon: IGrid,   color: 'var(--blue)', hoverBg: '#1A1A22' },
+  { href: '/leaderboard', label: 'Standings', icon: IBars,   color: 'var(--green)',hoverBg: '#1A1A22' },
+];
 
-  // Close mobile sidebar on route change
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+function NavLink({ link, active, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const isYellow = link.color === 'var(--yellow)';
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        all: 'unset',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '11px 14px',
+        borderRadius: 'var(--r)',
+        background: active ? link.color : hovered ? 'var(--ink-2)' : 'transparent',
+        color: active ? (isYellow ? 'var(--ink)' : '#fff') : '#D8D5CB',
+        fontWeight: 600,
+        fontSize: 14,
+        letterSpacing: '-0.01em',
+        transition: 'all .15s',
+        width: '100%',
+      }}
+    >
+      <span style={{ display: 'inline-flex' }}>{link.icon(18)}</span>
+      <span>{link.label}</span>
+      {active && (
+        <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 11 }}>·</span>
+      )}
+    </button>
+  );
+}
 
-  function toggleDark() {
-    const next = !isDark;
-    setIsDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('prode_dark', String(next));
-  }
-
-  function handleLogout() {
-    onLogout(); // App.jsx calls supabase.auth.signOut() which triggers onAuthStateChange
-    navigate('/');
-  }
-
-  const links = [
-    { href: '/',            label: 'Home',        Icon: HomeIcon  },
-    { href: '/predictions', label: 'Predictions', Icon: Target    },
-    { href: '/groups',      label: 'Groups',      Icon: LayoutGrid },
-    { href: '/leaderboard', label: 'Standings',   Icon: BarChart3 },
-  ];
-
-  const SidebarInner = (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-4">
-        <Trophy className="h-5 w-5 text-primary" />
-        <div className="font-semibold leading-tight">
-          World Cup '26
-          <div className="text-xs font-normal text-muted-foreground">Office Pool</div>
+function SidebarContent({ user, onLogout, location, navigate }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Brand */}
+      <div style={{ padding: '20px 20px 18px', borderBottom: '1px solid var(--line-2)' }}>
+        <div className="label" style={{ color: '#6B6B70', marginBottom: 8 }}>RYZ LABS · OFFICE POOL</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <div style={{
+            fontFamily: 'var(--display)',
+            fontSize: 38,
+            lineHeight: 0.82,
+            letterSpacing: '-0.04em',
+            color: 'var(--bg)',
+          }}>PRODE</div>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            background: 'var(--yellow)',
+            color: 'var(--ink)',
+            fontFamily: 'var(--display)',
+            fontSize: 38,
+            lineHeight: 0.82,
+            letterSpacing: '-0.05em',
+            padding: '0 8px 2px',
+            borderRadius: 6,
+          }}>26</div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 p-3">
-        {links.map(({ href, label, Icon }) => (
-          <button
-            key={href}
-            onClick={() => navigate(href)}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              location.pathname === href
-                ? 'bg-secondary text-secondary-foreground'
-                : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
+      <nav style={{ flex: 1, padding: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {LINKS.map((l) => (
+          <NavLink
+            key={l.href}
+            link={l}
+            active={location.pathname === l.href}
+            onClick={() => navigate(l.href)}
+          />
         ))}
+
+        {/* Tournament status chip */}
+        <div style={{
+          marginTop: 'auto',
+          padding: 12,
+          background: 'var(--ink-2)',
+          borderRadius: 'var(--r)',
+          marginBottom: 4,
+        }}>
+          <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>TOURNAMENT</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: 999,
+              background: 'var(--green)',
+              animation: 'pulse-green 2s infinite',
+              flexShrink: 0,
+            }} />
+            <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--bg)' }}>Season 2026</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#8B8B90' }}>Jun 11 – Jul 19 · 104 matches</div>
+        </div>
       </nav>
 
-      {/* Footer: user + actions */}
-      <div className="border-t p-3 space-y-2">
-        <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-            {user?.name?.[0]?.toUpperCase()}
+      {/* User */}
+      <div style={{
+        padding: '12px 14px',
+        borderTop: '1px solid var(--line-2)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+      }}>
+        <div style={{
+          width: 34, height: 34,
+          background: 'var(--pink)',
+          color: '#fff',
+          borderRadius: 999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'var(--display)',
+          fontSize: 14,
+          flexShrink: 0,
+        }}>
+          {(user?.name?.[0] || '?').toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.2, color: 'var(--bg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.name || 'Player'}
           </div>
-          <span className="text-sm font-medium truncate">{user?.name}</span>
+          <div style={{ fontSize: 11, color: '#8B8B90' }}>
+            {user?.email?.split('@')[0]}
+          </div>
         </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="flex-1" onClick={toggleDark} title="Toggle theme">
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-          <Button variant="ghost" size="icon" className="flex-1" onClick={handleLogout} title="Logout">
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+        <button
+          onClick={onLogout}
+          title="Logout"
+          style={{
+            all: 'unset',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            borderRadius: 'var(--r-sm)',
+            color: '#8B8B90',
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ink-2)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8B8B90'; }}
+        >
+          <LogOut size={15} />
+        </button>
       </div>
     </div>
   );
+}
+
+export default function Sidebar({ user, onLogout }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  const sidebarStyle = {
+    width: 240,
+    flexShrink: 0,
+    background: 'var(--ink)',
+    color: 'var(--bg)',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    position: 'sticky',
+    top: 0,
+  };
 
   return (
     <>
       {/* Mobile top bar */}
-      <header className="sm:hidden sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4">
-        <div className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-primary" />
-          <span className="font-semibold">World Cup '26</span>
+      <header style={{
+        display: 'none',
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+        height: 56,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid var(--line)',
+        background: 'var(--ink)',
+        padding: '0 16px',
+      }} className="mobile-header">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 22, color: 'var(--bg)', letterSpacing: '-0.04em' }}>PRODE</span>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 22, background: 'var(--yellow)', color: 'var(--ink)', padding: '0 5px 1px', borderRadius: 4, letterSpacing: '-0.04em' }}>26</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
-          <Menu className="h-5 w-5" />
-        </Button>
+        <button
+          onClick={() => setMobileOpen(true)}
+          style={{ all: 'unset', cursor: 'pointer', color: 'var(--bg)', display: 'flex' }}
+        >
+          <Menu size={22} />
+        </button>
       </header>
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-foreground/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-64 bg-background shadow-xl">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 z-10"
+        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} className="sm:hidden">
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,15,0.6)' }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside style={{ ...sidebarStyle, position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+            <button
               onClick={() => setMobileOpen(false)}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                position: 'absolute', right: 12, top: 12,
+                color: '#8B8B90', display: 'flex',
+              }}
             >
-              <X className="h-4 w-4" />
-            </Button>
-            {SidebarInner}
+              <X size={20} />
+            </button>
+            <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
           </aside>
         </div>
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden sm:flex w-60 flex-shrink-0 border-r bg-background sticky top-0 h-screen">
-        {SidebarInner}
+      <aside style={sidebarStyle} className="hidden sm:flex">
+        <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
       </aside>
+
+      <style>{`
+        @media (max-width: 639px) {
+          .mobile-header { display: flex !important; }
+          aside.hidden { display: none !important; }
+        }
+      `}</style>
     </>
   );
 }
