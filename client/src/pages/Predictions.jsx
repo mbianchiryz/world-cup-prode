@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { getFlag } from '@/lib/matches-data';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick } from '@/lib/supabase-db';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, Check, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ── Group color palette (matches Groups.jsx) ──────────────────────────────────
+const GROUP_COLORS = {
+  A: 'var(--red)',    B: 'var(--blue)',   C: 'var(--green)',  D: 'var(--pink)',
+  E: 'var(--yellow)', F: 'var(--cyan)',   G: 'var(--purple)', H: 'var(--orange)',
+  I: 'var(--red)',    J: 'var(--blue)',   K: 'var(--green)',  L: 'var(--pink)',
+};
+
+function groupColor(letter) {
+  return GROUP_COLORS[letter] || 'var(--ink)';
+}
+function isYellowGroup(letter) {
+  return groupColor(letter) === 'var(--yellow)';
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const LOCK_OFFSET_MS = 60 * 60 * 1000; // 1 hour before kickoff
@@ -62,31 +72,53 @@ function usePickCountdown(matchTime, finished) {
   return { label, urgency };
 }
 
-const URGENCY_STYLES = {
-  open:     'text-muted-foreground',
-  soon:     'text-amber-500 font-medium',
-  imminent: 'text-red-500 font-semibold',
-};
+const LOCK_SVG = (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="4" y="11" width="16" height="10" rx="2"/>
+    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+  </svg>
+);
+const CHECK_SVG = (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <polyline points="4 12 10 18 20 6"/>
+  </svg>
+);
+const ARROW_SVG = (
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+  </svg>
+);
 
 function CountdownBadge({ matchTime, finished }) {
   const { label, urgency } = usePickCountdown(matchTime, finished);
 
-  if (urgency === 'finished') return <span className="text-xs text-muted-foreground">✓ Final</span>;
-  if (urgency === 'locked')   return (
-    <span className="text-xs text-muted-foreground flex items-center gap-1">
-      <Lock className="h-3 w-3" />Picks closed
-    </span>
-  );
+  if (urgency === 'finished') {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.1em', color: 'var(--green)', fontWeight: 600 }}>
+        {CHECK_SVG} FINAL
+      </span>
+    );
+  }
+  if (urgency === 'locked') {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.1em', color: 'var(--muted)' }}>
+        {LOCK_SVG} LOCKED
+      </span>
+    );
+  }
+
+  const color =
+    urgency === 'imminent' ? 'var(--red)'    :
+    urgency === 'soon'     ? 'var(--orange)' : 'var(--muted)';
 
   return (
-    <span className={cn('text-xs flex items-center gap-1', URGENCY_STYLES[urgency])}>
-      <Lock className="h-3 w-3" />
-      {label} left
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.1em', color, fontWeight: urgency !== 'open' ? 600 : 500 }}>
+      {LOCK_SVG} {label} LEFT
     </span>
   );
 }
 
-// ── MatchCard (grid view) ─────────────────────────────────────────────────────
+// ── MatchCard ─────────────────────────────────────────────────────────────────
 function MatchCard({ match, pred, onSave }) {
   const locked  = isLocked(match.match_time);
   const canEdit = !match.finished && !locked && match.home_team !== 'TBD' && match.away_team !== 'TBD';
@@ -94,6 +126,7 @@ function MatchCard({ match, pred, onSave }) {
   const [h, setH] = useState(pred?.home_score ?? '');
   const [a, setA] = useState(pred?.away_score ?? '');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setH(pred?.home_score ?? '');
@@ -102,72 +135,166 @@ function MatchCard({ match, pred, onSave }) {
 
   async function handleSave() {
     if (h === '' || a === '') return;
+    setSaving(true);
     try {
       await onSave(match.id, Number(h), Number(a));
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch (e) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  const gColor = match.group_name ? groupColor(match.group_name) : 'var(--ink)';
+  const gIsYellow = match.group_name ? isYellowGroup(match.group_name) : false;
+
+  // Score box: editable input or static display
+  function ScoreBox({ value, onChange, isResult }) {
+    if (isResult) {
+      return (
+        <div style={{
+          width: 48, height: 48,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
+          background: 'var(--ink)', color: 'var(--bg)',
+          borderRadius: 'var(--r-sm)',
+        }}>{value ?? '–'}</div>
+      );
+    }
+    if (canEdit) {
+      return (
+        <input
+          type="number" min="0" max="20"
+          value={value}
+          onChange={(e) => onChange(e.target.value === '' ? '' : Math.max(0, Math.min(20, Number(e.target.value))))}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          style={{
+            width: 48, height: 48,
+            textAlign: 'center',
+            fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
+            background: 'var(--bg)',
+            border: `2px solid ${gColor}`,
+            borderRadius: 'var(--r-sm)',
+            outline: 'none',
+            color: 'var(--ink)',
+          }}
+        />
+      );
+    }
+    // Locked/no edit: static with dashed border
+    return (
+      <div style={{
+        width: 48, height: 48,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
+        background: 'transparent',
+        border: '2px dashed var(--line)',
+        borderRadius: 'var(--r-sm)',
+        color: value !== '' && value !== undefined ? 'var(--ink)' : 'var(--muted)',
+      }}>{value !== '' && value !== undefined ? value : '–'}</div>
+    );
   }
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{match.group_name ? `Group ${match.group_name} · ` : ''}
-            {match.matchday ? `MD${match.matchday}` : '–'}</span>
-          <span>{new Date(match.match_time).toLocaleString(undefined, {
-            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-          })}</span>
-        </div>
-
-        <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-2xl">{getFlag(match.home_team)}</span>
-            <span className="font-semibold uppercase text-sm truncate">{match.home_team}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {match.finished ? (
-              <>
-                <div className="w-10 h-10 rounded-md border-2 border-primary bg-primary/10 flex items-center justify-center font-bold text-lg">{match.home_score}</div>
-                <span className="text-muted-foreground px-1">–</span>
-                <div className="w-10 h-10 rounded-md border-2 border-primary bg-primary/10 flex items-center justify-center font-bold text-lg">{match.away_score}</div>
-              </>
-            ) : canEdit ? (
-              <>
-                <Input className="w-12 h-10 px-1 text-center text-lg font-bold leading-none" type="number" min="0" max="20"
-                  value={h} onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
-                <span className="text-muted-foreground px-1">–</span>
-                <Input className="w-12 h-10 px-1 text-center text-lg font-bold leading-none" type="number" min="0" max="20"
-                  value={a} onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
-              </>
-            ) : (
-              <>
-                <div className="w-10 h-10 rounded-md border flex items-center justify-center text-muted-foreground">{pred?.home_score ?? '–'}</div>
-                <span className="text-muted-foreground px-1">–</span>
-                <div className="w-10 h-10 rounded-md border flex items-center justify-center text-muted-foreground">{pred?.away_score ?? '–'}</div>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 min-w-0 flex-row-reverse text-right">
-            <span className="text-2xl">{getFlag(match.away_team)}</span>
-            <span className="font-semibold uppercase text-sm truncate">{match.away_team}</span>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center text-xs">
-          <CountdownBadge matchTime={match.match_time} finished={match.finished} />
-          {canEdit && (
-            <Button size="sm" variant={saved ? 'default' : 'secondary'} onClick={handleSave} disabled={h === '' || a === ''}>
-              {saved ? <><Check className="h-3 w-3 mr-1" />Saved</> : 'Save Pick'}
-            </Button>
+    <div style={{
+      background: 'var(--bg)',
+      border: `1.5px solid var(--line)`,
+      borderTop: `3px solid ${gColor}`,
+      borderRadius: 'var(--r)',
+      overflow: 'hidden',
+    }}>
+      {/* Card header: group badge + meta + time */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px',
+        background: 'var(--bg-2)',
+        borderBottom: '1px solid var(--line)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {match.group_name && (
+            <div style={{
+              width: 26, height: 26,
+              background: gColor,
+              color: gIsYellow ? 'var(--ink)' : '#fff',
+              borderRadius: 6,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--display)', fontSize: 14,
+              flexShrink: 0,
+            }}>{match.group_name}</div>
           )}
+          <span className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>
+            {match.group_name ? `GROUP ${match.group_name} · ` : ''}MD{match.matchday ?? '–'}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        <span className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>
+          {new Date(match.match_time).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+          {' '}{new Date(match.match_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
+          {' · '}
+          {new Date(match.match_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        </span>
+      </div>
+
+      {/* Match row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        gap: 12,
+        padding: '18px 20px',
+      }}>
+        {/* Home */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{ fontSize: 26, flexShrink: 0 }}>{getFlag(match.home_team)}</span>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {match.home_team.toUpperCase()}
+          </span>
+        </div>
+
+        {/* Score */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <ScoreBox value={match.finished ? match.home_score : h} onChange={setH} isResult={match.finished} />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+          <ScoreBox value={match.finished ? match.away_score : a} onChange={setA} isResult={match.finished} />
+        </div>
+
+        {/* Away */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, justifyContent: 'flex-end', flexDirection: 'row-reverse' }}>
+          <span style={{ fontSize: 26, flexShrink: 0 }}>{getFlag(match.away_team)}</span>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+            {match.away_team.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* Footer: countdown + save */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px',
+        background: 'var(--bg-2)',
+        borderTop: '1px solid var(--line)',
+      }}>
+        <CountdownBadge matchTime={match.match_time} finished={match.finished} />
+
+        {canEdit && (
+          <button
+            onClick={handleSave}
+            disabled={h === '' || a === '' || saving}
+            style={{
+              all: 'unset', cursor: h === '' || a === '' ? 'not-allowed' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: saved ? 'var(--green)' : (h === '' || a === '') ? 'var(--line)' : 'var(--ink)',
+              color: saved ? '#fff' : (h === '' || a === '') ? 'var(--muted)' : 'var(--bg)',
+              borderRadius: 999,
+              fontWeight: 700, fontSize: 12,
+              padding: '7px 14px',
+              fontFamily: 'var(--sans)',
+              transition: 'background .15s',
+            }}
+          >
+            {saved ? <>{CHECK_SVG} Saved</> : <>Save {ARROW_SVG}</>}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -376,22 +503,34 @@ function isPending(match, pred) {
 // ── Sub-tab pill bar ──────────────────────────────────────────────────────────
 function PillBar({ options, value, onChange }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-            value === o.value
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80',
-          )}
-        >
+        <PillBtn key={o.value} active={value === o.value} onClick={() => onChange(o.value)}>
           {o.label}
-        </button>
+        </PillBtn>
       ))}
     </div>
+  );
+}
+
+function PillBtn({ active, onClick, children }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        all: 'unset', cursor: 'pointer',
+        padding: '6px 14px',
+        borderRadius: 999,
+        fontSize: 12, fontWeight: 600,
+        background: active ? 'var(--ink)' : hovered ? 'var(--bg-2)' : 'transparent',
+        color: active ? 'var(--bg)' : 'var(--ink)',
+        border: active ? '1.5px solid var(--ink)' : '1.5px solid var(--line)',
+        transition: 'all .12s',
+      }}
+    >{children}</button>
   );
 }
 
@@ -431,7 +570,11 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
 
 function EmptyState({ pendingOnly }) {
   return (
-    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+    <div style={{
+      border: '2px dashed var(--line)', borderRadius: 'var(--r)',
+      padding: '40px 24px', textAlign: 'center',
+      color: 'var(--muted)', fontSize: 13, fontWeight: 500,
+    }}>
       {pendingOnly
         ? '🎉 All matches in this section have a pick — nothing pending here.'
         : 'No matches to show in this section.'}
@@ -505,6 +648,50 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
   );
 }
 
+// ── Section switcher button ───────────────────────────────────────────────────
+function SectionBtn({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        all: 'unset', cursor: 'pointer',
+        padding: '8px 18px',
+        borderRadius: 8,
+        background: active ? 'var(--ink)' : 'transparent',
+        color: active ? 'var(--bg)' : 'var(--muted)',
+        fontWeight: 700, fontSize: 13,
+        letterSpacing: '-0.01em',
+        transition: 'all .12s',
+      }}
+    >{children}</button>
+  );
+}
+
+function PendingToggle({ active, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        all: 'unset', cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px',
+        borderRadius: 'var(--r)',
+        border: active ? '1.5px solid var(--orange)' : '1.5px solid var(--line)',
+        background: active ? 'rgba(255,106,26,0.1)' : hovered ? 'var(--bg-2)' : 'transparent',
+        color: active ? 'var(--orange)' : 'var(--muted)',
+        fontWeight: 600, fontSize: 13,
+        transition: 'all .12s',
+      }}
+    >
+      {active ? '⏰' : '📋'}
+      {active ? 'Pending only' : 'Show pending only'}
+    </button>
+  );
+}
+
 // ── Main Predictions page ─────────────────────────────────────────────────────
 export default function Predictions() {
   const [matches, setMatches] = useState([]);
@@ -548,93 +735,99 @@ export default function Predictions() {
     setChamp((c) => ({ ...c, prediction: team }));
   }, []);
 
-  const made = Object.keys(preds).length;
+  const made  = Object.keys(preds).length;
+  const total = matches.filter((m) => m.home_team !== 'TBD' && m.away_team !== 'TBD').length || 104;
+  const pct   = Math.round((made / total) * 100);
 
-  if (loading) return <div className="text-muted-foreground">Loading…</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.12em', color: 'var(--muted)' }}>
+        LOADING…
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header + progress */}
-      <div>
-        <div className="flex justify-between items-baseline mb-1">
-          <h1 className="text-2xl font-bold tracking-tight">Your Picks</h1>
-          <span className="text-sm text-muted-foreground">
-            <b className="text-foreground text-xl">{made}</b> of 104
-          </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}>
+      {/* Progress header */}
+      <div style={{
+        background: 'var(--ink)', color: 'var(--bg)',
+        borderRadius: 'var(--r-lg)', padding: '24px 28px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
+          <div>
+            <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>YOUR PICKS · LOCK 1H BEFORE KICKOFF</div>
+            <h1 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px, 4vw, 52px)', lineHeight: 0.9, letterSpacing: '-0.04em', margin: 0 }}>
+              Make your picks.
+            </h1>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(52px, 6vw, 80px)', lineHeight: 0.85, letterSpacing: '-0.05em', color: 'var(--yellow)' }}>
+              {made}<span style={{ color: '#3A3A45', fontSize: '55%' }}>/{total}</span>
+            </div>
+            <div className="label" style={{ color: '#8B8B90', marginTop: 4 }}>MATCHES PICKED</div>
+          </div>
         </div>
-        <div className="h-1 rounded-full bg-secondary overflow-hidden">
-          <div className="h-full bg-primary transition-all" style={{ width: `${(made / 104) * 100}%` }} />
+        {/* Progress bar */}
+        <div style={{ marginTop: 20, height: 6, background: 'var(--ink-2)', borderRadius: 999 }}>
+          <div style={{ height: '100%', background: 'var(--yellow)', borderRadius: 999, width: `${pct}%`, transition: 'width .4s ease' }} />
         </div>
       </div>
 
       {/* Champion picker */}
       {champ && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Trophy className="h-4 w-4 text-primary" />
-              Champion Pick
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div style={{
+          background: 'var(--yellow)', color: 'var(--ink)',
+          borderRadius: 'var(--r)', padding: '16px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <div className="label" style={{ marginBottom: 4, opacity: 0.7 }}>🏆 CHAMPION PICK · +50 PTS</div>
             {champ.champion ? (
-              <div className="text-sm">🏆 Tournament champion: <b>{champ.champion}</b></div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em' }}>
+                {getFlag(champ.champion)} {champ.champion} — Champion!
+              </div>
             ) : champ.locked ? (
-              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                <Lock className="h-3 w-3" />Locked · Your pick: <b>{champ.prediction || '— none —'}</b>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em' }}>
+                {LOCK_SVG} Locked · {champ.prediction ? `${getFlag(champ.prediction)} ${champ.prediction}` : 'No pick made'}
               </div>
             ) : (
-              <Select value={champ.prediction || ''} onValueChange={saveChamp}>
-                <SelectTrigger className="max-w-xs">
-                  <SelectValue placeholder="Choose a team" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(champ.teams || []).sort().map((t) => (
-                    <SelectItem key={t} value={t}>{getFlag(t)} {t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.02em' }}>
+                {champ.prediction ? `${getFlag(champ.prediction)} ${champ.prediction}` : 'Pick your champion →'}
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+          {!champ.locked && !champ.champion && (
+            <Select value={champ.prediction || ''} onValueChange={saveChamp}>
+              <SelectTrigger style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', width: 200, fontWeight: 600 }}>
+                <SelectValue placeholder="Choose a team" />
+              </SelectTrigger>
+              <SelectContent>
+                {(champ.teams || []).sort().map((t) => (
+                  <SelectItem key={t} value={t}>{getFlag(t)} {t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       )}
 
-      {/* Top-level section switcher + pending picks toggle */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 p-1 rounded-xl bg-secondary w-fit">
-        {[
-          { value: 'group',    label: '⚽ Group Stage' },
-          { value: 'knockout', label: '🏆 Knockout'    },
-        ].map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setSection(s.value)}
-            className={cn(
-              'px-5 py-2 rounded-lg text-sm font-semibold transition-all',
-              section === s.value
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {s.label}
-          </button>
-        ))}
+      {/* Section switcher + pending toggle */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 'var(--r)', background: 'var(--bg-2)', border: '1.5px solid var(--line)' }}>
+          {[
+            { value: 'group',    label: '⚽ Group Stage' },
+            { value: 'knockout', label: '🏆 Knockout'    },
+          ].map((s) => (
+            <SectionBtn key={s.value} active={section === s.value} onClick={() => setSection(s.value)}>
+              {s.label}
+            </SectionBtn>
+          ))}
         </div>
 
-        {/* Pending picks toggle — applies to whichever section is active */}
-        <button
-          onClick={() => setPendingOnly((v) => !v)}
-          className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
-            pendingOnly
-              ? 'bg-amber-500/15 border-amber-500/50 text-amber-600 dark:text-amber-400'
-              : 'bg-background border-border text-muted-foreground hover:text-foreground'
-          )}
-          title="Show only matches you haven't picked yet"
-        >
-          {pendingOnly ? '⏰' : '📋'}
-          {pendingOnly ? 'Pending picks only' : 'Show pending only'}
-        </button>
+        <PendingToggle active={pendingOnly} onClick={() => setPendingOnly((v) => !v)} />
       </div>
 
       {/* Content */}
