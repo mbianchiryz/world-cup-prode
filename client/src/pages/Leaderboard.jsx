@@ -31,8 +31,11 @@ function FormSpark({ seed }) {
   );
 }
 
+// Champion picks are hidden until knockout stage starts (same lock date as champion pick deadline)
+const CHAMPION_LOCK_DATE = new Date('2026-06-28T19:00:00.000Z');
+
 // ── Podium ────────────────────────────────────────────────────────────────────
-function Podium({ players, onSelect }) {
+function Podium({ players, onSelect, showChampion }) {
   const order = [
     { p: players[1], rank: 2, h: 130, color: 'var(--blue)',   fg: '#fff' },
     { p: players[0], rank: 1, h: 170, color: 'var(--yellow)', fg: 'var(--ink)' },
@@ -80,7 +83,7 @@ function Podium({ players, onSelect }) {
                   marginBottom: 8, cursor: 'pointer',
                 }}
               >
-                {o.p.pickedChampion && (
+                {showChampion && o.p.pickedChampion && (
                   <div className="label" style={{ color: 'var(--muted)' }}>
                     {getFlag(o.p.pickedChampion)} {o.p.pickedChampion.toUpperCase()} TO WIN
                   </div>
@@ -112,13 +115,13 @@ function Podium({ players, onSelect }) {
 }
 
 // ── Full Table ────────────────────────────────────────────────────────────────
-function FullTable({ players, onSelect }) {
+function FullTable({ players, onSelect, showChampion }) {
   return (
     <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '50px 1fr 110px 70px 60px 64px',
+        gridTemplateColumns: showChampion ? '50px 1fr 110px 70px 60px 64px' : '50px 1fr 70px 60px 64px',
         gap: 10,
         padding: '11px 16px',
         background: 'var(--ink)',
@@ -126,7 +129,7 @@ function FullTable({ players, onSelect }) {
       }} className="label">
         <div>#</div>
         <div>PLAYER</div>
-        <div style={{ textAlign: 'center' }}>CHAMPION</div>
+        {showChampion && <div style={{ textAlign: 'center' }}>CHAMPION</div>}
         <div style={{ textAlign: 'center' }}>EXACT</div>
         <div style={{ textAlign: 'center' }}>FORM</div>
         <div style={{ textAlign: 'right' }}>PTS</div>
@@ -143,7 +146,7 @@ function FullTable({ players, onSelect }) {
           i === 1 || i === 2 ? '#fff' : 'var(--muted)';
 
         return (
-          <TableRow key={p.id} p={p} i={i} rankColor={rankColor} rankFg={rankFg} onSelect={onSelect} />
+          <TableRow key={p.id} p={p} i={i} rankColor={rankColor} rankFg={rankFg} onSelect={onSelect} showChampion={showChampion} />
         );
       })}
 
@@ -156,7 +159,7 @@ function FullTable({ players, onSelect }) {
   );
 }
 
-function TableRow({ p, i, rankColor, rankFg, onSelect }) {
+function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -165,7 +168,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '50px 1fr 110px 70px 60px 64px',
+        gridTemplateColumns: showChampion ? '50px 1fr 110px 70px 60px 64px' : '50px 1fr 70px 60px 64px',
         gap: 10,
         padding: '13px 16px',
         alignItems: 'center',
@@ -194,17 +197,19 @@ function TableRow({ p, i, rankColor, rankFg, onSelect }) {
         </div>
       </div>
 
-      {/* Champion */}
-      <div style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}>
-        {p.pickedChampion ? (
-          <>
-            <span style={{ fontSize: 14 }}>{getFlag(p.pickedChampion)}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.pickedChampion}</span>
-          </>
-        ) : (
-          <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>—</span>
-        )}
-      </div>
+      {/* Champion — only shown after knockout starts */}
+      {showChampion && (
+        <div style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}>
+          {p.pickedChampion ? (
+            <>
+              <span style={{ fontSize: 14 }}>{getFlag(p.pickedChampion)}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.pickedChampion}</span>
+            </>
+          ) : (
+            <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>—</span>
+          )}
+        </div>
+      )}
 
       {/* Exact */}
       <div style={{ textAlign: 'center' }}>
@@ -229,7 +234,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect }) {
 }
 
 // ── Player Modal ──────────────────────────────────────────────────────────────
-function PlayerModal({ player, onClose }) {
+function PlayerModal({ player, onClose, showChampion }) {
   const [picks, setPicks]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -284,7 +289,7 @@ function PlayerModal({ player, onClose }) {
               fontFamily: 'var(--display)', fontSize: 34,
               letterSpacing: '-0.03em', margin: '0 0 4px',
             }}>{player.name}</h3>
-            {player.pickedChampion && (
+            {showChampion && player.pickedChampion && (
               <div style={{ fontSize: 13, color: '#8B8B90' }}>
                 Champion pick: <b style={{ color: 'var(--bg)' }}>
                   {getFlag(player.pickedChampion)} {player.pickedChampion}
@@ -436,6 +441,8 @@ export default function Leaderboard() {
   }
 
   const standings = data.standings || [];
+  // Show champion picks only after the knockout stage begins (same date as pick lock)
+  const knockoutStarted = Date.now() >= CHAMPION_LOCK_DATE.getTime();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1000 }}>
@@ -454,19 +461,24 @@ export default function Leaderboard() {
             lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
           }}>Leaderboard</h2>
         </div>
+        {!knockoutStarted && (
+          <div className="label" style={{ color: 'var(--muted)', fontSize: 10, textAlign: 'right' }}>
+            🔒 Champion picks hidden<br />until knockout stage
+          </div>
+        )}
       </div>
 
       {/* Podium (only when 3+ players) */}
       {standings.length >= 3 && (
-        <Podium players={standings} onSelect={setSelected} />
+        <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
       )}
 
       {/* Full table */}
-      <FullTable players={standings} onSelect={setSelected} />
+      <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
 
       {/* Modal */}
       {selectedPlayer && (
-        <PlayerModal player={selectedPlayer} onClose={handleClose} />
+        <PlayerModal player={selectedPlayer} onClose={handleClose} showChampion={knockoutStarted} />
       )}
     </div>
   );

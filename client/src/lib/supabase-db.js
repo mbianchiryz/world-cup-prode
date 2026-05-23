@@ -84,6 +84,26 @@ export async function saveChampionPick(team) {
   if (error) throw new Error(error.message);
 }
 
+export async function getChampionPickStats() {
+  const { data, error } = await supabase
+    .from('champion_predictions')
+    .select('team');
+  if (error) throw new Error(error.message);
+
+  const counts = {};
+  for (const row of data || []) {
+    if (row.team) counts[row.team] = (counts[row.team] || 0) + 1;
+  }
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  return Object.entries(counts)
+    .map(([team, count]) => ({
+      team,
+      count,
+      pct: total > 0 ? Math.round((count / total) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 export async function getLeaderboard() {
   const [

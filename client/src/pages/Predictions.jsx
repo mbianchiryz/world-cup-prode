@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { getFlag } from '@/lib/matches-data';
-import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick } from '@/lib/supabase-db';
+import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -744,17 +744,39 @@ function PendingToggle({ active, onClick }) {
 // ── Champion Section ──────────────────────────────────────────────────────────
 function ChampionSection({ champ, onSave }) {
   const [search, setSearch] = useState('');
+  const [pickStats, setPickStats] = useState([]);
   const teams = useMemo(() => (champ.teams || []).sort(), [champ.teams]);
 
-  // Simple popularity mock — in a real setup you'd fetch this from Supabase
-  const popularTeams = ['Argentina', 'Brazil', 'France', 'England', 'Spain', 'Germany', 'Portugal', 'Netherlands'];
-  const popularVisible = popularTeams.filter((t) => teams.includes(t));
-  const maxPct = 22;
-  const popularPcts = { Argentina: 22, Brazil: 19, France: 14, England: 11, Spain: 9, Germany: 7, Portugal: 6, Netherlands: 5 };
+  // Load real pick stats and poll every 30 s
+  useEffect(() => {
+    let cancelled = false;
+    function load() {
+      getChampionPickStats()
+        .then((stats) => { if (!cancelled) setPickStats(stats); })
+        .catch(() => {}); // silent fail — show stale data
+    }
+    load();
+    const id = setInterval(load, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // Top 6 from real data; fall back to empty if nobody has picked yet
+  const top6 = pickStats.slice(0, 6);
+  const maxPct = top6[0]?.pct || 1; // avoid divide-by-zero in the bar
 
   const filtered = teams.filter((t) => t.toLowerCase().includes(search.toLowerCase()));
   const isLocked = champ.locked || !!champ.champion;
   const current = champ.champion || champ.prediction;
+
+  // After user saves a pick, refresh stats immediately
+  function handlePick(team) {
+    if (isLocked) return;
+    onSave(team).then(() => {
+      getChampionPickStats()
+        .then(setPickStats)
+        .catch(() => {});
+    }).catch(() => {});
+  }
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'start' }}>
@@ -816,32 +838,44 @@ function ChampionSection({ champ, onSave }) {
 
       {/* Right: popular picks + team grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* Popular picks */}
+        {/* Popular picks — live from Supabase */}
         <div>
-          <div className="label" style={{ color: 'var(--muted)', marginBottom: 14 }}>POPULAR PICKS · OFFICE POOL</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {popularVisible.slice(0, 6).map((t) => {
-              const pct = popularPcts[t] || 3;
-              const isSelected = t === current;
-              return (
-                <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 130, flexShrink: 0 }}>
-                    <span style={{ fontSize: 16 }}>{getFlag(t)}</span>
-                    <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500 }}>{t}</span>
-                  </div>
-                  <div style={{ flex: 1, height: 6, background: 'var(--bg-2)', borderRadius: 999 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 999,
-                      background: isSelected ? 'var(--ink)' : 'var(--line)',
-                      width: `${(pct / maxPct) * 100}%`,
-                      transition: 'width .3s',
-                    }} />
-                  </div>
-                  <div className="label" style={{ color: 'var(--muted)', fontSize: 10, width: 28, textAlign: 'right' }}>{pct}%</div>
-                </div>
-              );
-            })}
+          <div className="label" style={{ color: 'var(--muted)', marginBottom: 14 }}>
+            POPULAR PICKS · OFFICE POOL
+            {pickStats.length > 0 && (
+              <span style={{ marginLeft: 8, color: 'var(--green)' }}>● LIVE</span>
+            )}
           </div>
+          {top6.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>
+              No picks yet — be the first!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {top6.map((row) => {
+                const isSelected = row.team === current;
+                return (
+                  <div key={row.team} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 130, flexShrink: 0 }}>
+                      <span style={{ fontSize: 16 }}>{getFlag(row.team)}</span>
+                      <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500 }}>{row.team}</span>
+                    </div>
+                    <div style={{ flex: 1, height: 6, background: 'var(--bg-2)', borderRadius: 999 }}>
+                      <div style={{
+                        height: '100%', borderRadius: 999,
+                        background: isSelected ? 'var(--ink)' : 'var(--line)',
+                        width: `${(row.pct / maxPct) * 100}%`,
+                        transition: 'width .4s',
+                      }} />
+                    </div>
+                    <div className="label" style={{ color: 'var(--muted)', fontSize: 10, width: 32, textAlign: 'right' }}>
+                      {row.pct}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* All 48 teams grid */}
@@ -868,7 +902,7 @@ function ChampionSection({ champ, onSave }) {
               {filtered.map((t) => {
                 const isSel = t === current;
                 return (
-                  <TeamBtn key={t} team={t} selected={isSel} onClick={() => !isLocked && onSave(t)} />
+                  <TeamBtn key={t} team={t} selected={isSel} onClick={() => handlePick(t)} />
                 );
               })}
             </div>
