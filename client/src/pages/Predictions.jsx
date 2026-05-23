@@ -321,60 +321,107 @@ function BracketTile({ match, pred, onSave }) {
     } catch (e) { alert(e.message); }
   }
 
-  function TeamRow({ team, scoreVal, isHome }) {
-    const isWinner = match.finished && (
-      isHome
-        ? match.home_score > match.away_score || match.winner === 'home'
-        : match.away_score > match.home_score || match.winner === 'away'
-    );
-    return (
-      <div className={cn(
-        'flex items-center gap-1.5 px-2 py-1.5',
-        isWinner && 'font-semibold',
-        isTBD && 'opacity-40',
-      )}>
-        <span className="text-base leading-none flex-shrink-0">{getFlag(team)}</span>
-        <span className="text-xs truncate flex-1">{team === 'TBD' ? '?' : team}</span>
-        {scoreVal !== null && scoreVal !== undefined && (
-          <span className={cn('text-xs font-bold tabular-nums flex-shrink-0', isWinner && 'text-primary')}>{scoreVal}</span>
-        )}
-      </div>
-    );
-  }
+  const homeWin = match.finished && match.home_score > match.away_score;
+  const awayWin = match.finished && match.away_score > match.home_score;
 
   return (
-    <div className={cn(
-      'rounded-lg border bg-card overflow-hidden text-sm transition-shadow',
-      canEdit && 'hover:shadow-md',
-      match.finished && 'border-primary/30',
-    )}>
-      <TeamRow team={match.home_team}
-        scoreVal={match.finished ? match.home_score : pred?.home_score}
-        isHome />
-      <div className="border-t" />
-      <TeamRow team={match.away_team}
-        scoreVal={match.finished ? match.away_score : pred?.away_score}
-        isHome={false} />
+    <div style={{
+      background: 'var(--bg)',
+      border: '1.5px solid var(--line)',
+      borderRadius: 'var(--r)',
+      overflow: 'hidden',
+      fontSize: 13,
+      opacity: isTBD ? 0.5 : 1,
+    }}>
+      {/* Home row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '8px 10px',
+        fontWeight: homeWin ? 700 : 500,
+        borderBottom: '1px solid var(--line)',
+      }}>
+        <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(match.home_team)}</span>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {match.home_team === 'TBD' ? '?' : match.home_team}
+        </span>
+        {match.finished && (
+          <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: homeWin ? 'var(--ink)' : 'var(--muted)' }}>
+            {match.home_score}
+          </span>
+        )}
+        {!match.finished && pred?.home_score !== undefined && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{pred.home_score}</span>
+        )}
+      </div>
 
-      {/* Quick-pick on bracket tiles */}
+      {/* Away row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '8px 10px',
+        fontWeight: awayWin ? 700 : 500,
+      }}>
+        <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(match.away_team)}</span>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {match.away_team === 'TBD' ? '?' : match.away_team}
+        </span>
+        {match.finished && (
+          <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: awayWin ? 'var(--ink)' : 'var(--muted)' }}>
+            {match.away_score}
+          </span>
+        )}
+        {!match.finished && pred?.away_score !== undefined && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{pred.away_score}</span>
+        )}
+      </div>
+
+      {/* Quick-pick inputs */}
       {canEdit && (
-        <div className="border-t flex items-center gap-1 px-2 py-1.5 bg-secondary/30">
-          <Input className="w-9 h-7 px-1 text-center text-sm font-bold leading-none" type="number" min="0" max="20"
-            value={h} onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
-          <span className="text-muted-foreground text-xs">–</span>
-          <Input className="w-9 h-7 px-1 text-center text-sm font-bold leading-none" type="number" min="0" max="20"
-            value={a} onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
-          <Button size="sm" className="h-7 px-2 text-xs ml-auto" variant={saved ? 'default' : 'secondary'}
-            onClick={handleSave} disabled={h === '' || a === ''}>
-            {saved ? <Check className="h-3 w-3" /> : 'Save'}
-          </Button>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '6px 8px',
+          background: 'var(--bg-2)',
+          borderTop: '1px solid var(--line)',
+        }}>
+          <input type="number" min="0" max="20" value={h}
+            onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            style={{
+              width: 36, height: 28, textAlign: 'center',
+              fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14,
+              background: 'var(--bg)', border: '1.5px solid var(--line)',
+              borderRadius: 4, outline: 'none', color: 'var(--ink)',
+            }} />
+          <span style={{ color: 'var(--muted)', fontSize: 11 }}>–</span>
+          <input type="number" min="0" max="20" value={a}
+            onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            style={{
+              width: 36, height: 28, textAlign: 'center',
+              fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14,
+              background: 'var(--bg)', border: '1.5px solid var(--line)',
+              borderRadius: 4, outline: 'none', color: 'var(--ink)',
+            }} />
+          <button
+            onClick={handleSave}
+            disabled={h === '' || a === ''}
+            style={{
+              all: 'unset', cursor: h === '' || a === '' ? 'not-allowed' : 'pointer',
+              marginLeft: 'auto',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              background: saved ? 'var(--green)' : (h === '' || a === '') ? 'var(--line)' : 'var(--ink)',
+              color: saved ? '#fff' : (h === '' || a === '') ? 'var(--muted)' : 'var(--bg)',
+              borderRadius: 999, fontWeight: 700, fontSize: 11,
+              padding: '5px 10px', transition: 'background .15s',
+            }}
+          >
+            {saved ? <>{CHECK_SVG} OK</> : <>Save {ARROW_SVG}</>}
+          </button>
         </div>
       )}
-      {/* Countdown / status strip on bracket tile */}
+
+      {/* Status strip */}
       {!canEdit && !isTBD && (
-        <div className="border-t px-2 py-1">
+        <div style={{ borderTop: '1px solid var(--line)', padding: '6px 10px', background: 'var(--bg-2)' }}>
           <CountdownBadge matchTime={match.match_time} finished={match.finished} />
         </div>
       )}
