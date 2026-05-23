@@ -65,7 +65,7 @@ export default function Login() {
 
       {/* Brand */}
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: 40 }}>
-        <div className="label" style={{ color: '#6B6B70', marginBottom: 12 }}>RYZ LABS · OFFICE POOL · SEASON 2026</div>
+        <div className="label" style={{ color: '#6B6B70', marginBottom: 12 }}>RYZ LABS · OFFICE POOL · WORLD CUP 2026</div>
         <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10 }}>
           <span style={{
             fontFamily: 'var(--display)', fontSize: 72, lineHeight: 0.82,

@@ -63,7 +63,7 @@ function SidebarContent({ user, onLogout, location, navigate }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Brand */}
       <div style={{ padding: '20px 20px 18px', borderBottom: '1px solid var(--line-2)' }}>
-        <div className="label" style={{ color: '#6B6B70', marginBottom: 8 }}>RYZ LABS · OFFICE POOL</div>
+        <div className="label" style={{ color: '#6B6B70', marginBottom: 8 }}>RYZ LABS · WORLD CUP 2026</div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div style={{
             fontFamily: 'var(--display)',
