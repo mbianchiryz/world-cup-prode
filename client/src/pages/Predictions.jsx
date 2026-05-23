@@ -172,7 +172,7 @@ function MatchCard({ match, pred, onSave }) {
             textAlign: 'center',
             fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
             background: 'var(--bg)',
-            border: `2px solid ${gColor}`,
+            border: '2px solid var(--ink)',
             borderRadius: 'var(--r-sm)',
             outline: 'none',
             color: 'var(--ink)',
