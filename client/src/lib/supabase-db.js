@@ -4,7 +4,7 @@
  * RLS policies on the DB enforce per-user access control.
  */
 import { supabase } from './supabase';
-import { calcMatchPoints, calcScore } from './scoring';
+import { calcMatchPoints, calcScore, isCorrectResult } from './scoring';
 import { ALL_TEAMS, GROUPS, getFlag } from './matches-data';
 
 // ── Matches ───────────────────────────────────────────────────────────────────
@@ -122,16 +122,64 @@ export async function getLeaderboard() {
 
   if (e1 || e2 || e3) throw new Error((e1 || e2 || e3).message);
 
-  const champion  = settingRow?.value || null;
+  const champion = settingRow?.value || null;
 
+  // ── Helpers for streak & trend ─────────────────────────────────────────────
+
+  // Finished matches sorted newest → oldest (used for streak)
+  const finishedSorted = (matches || [])
+    .filter((m) => m.finished && m.home_score != null)
+    .sort((a, b) => new Date(b.match_time) - new Date(a.match_time));
+
+  // "Last round" = all finished matches within 36 h of the most recent one.
+  // Used to compute previous standings for trend.
+  const trendMap = {};
+  if (finishedSorted.length > 0) {
+    const latestMs = new Date(finishedSorted[0].match_time).getTime();
+    const WINDOW   = 36 * 60 * 60 * 1000; // 36 h
+    const lastRoundIds = new Set(
+      finishedSorted
+        .filter((m) => latestMs - new Date(m.match_time).getTime() < WINDOW)
+        .map((m) => m.id)
+    );
+
+    // Standings without the last round
+    const prevList = (profiles || []).map((user) => {
+      const userPrevPreds = (allPreds   || []).filter((p) => p.user_id === user.id && !lastRoundIds.has(p.match_id));
+      const prevMatches   = (matches    || []).filter((m) => !lastRoundIds.has(m.id));
+      const champPred     = (champPreds || []).find((c) => c.user_id === user.id) || null;
+      const s = calcScore({ predictions: userPrevPreds, matches: prevMatches, championPred: champPred, champion });
+      return { id: user.id, total: s.total, exact: s.exact, result: s.result, name: user.name || '' };
+    });
+    prevList.sort((a, b) =>
+      b.total - a.total || b.exact - a.exact || b.result - a.result || a.name.localeCompare(b.name)
+    );
+    prevList.forEach((p, i) => { trendMap[p.id] = i + 1; });
+  }
+
+  // ── Main standings ─────────────────────────────────────────────────────────
   const standings = (profiles || []).map((user) => {
     const predictions  = (allPreds   || []).filter((p) => p.user_id === user.id);
     const championPred = (champPreds || []).find((c) => c.user_id === user.id) || null;
     const score        = calcScore({ predictions, matches: matches || [], championPred, champion });
+
+    // Streak: consecutive correct-direction results from newest finished match backward.
+    // A missed pick or wrong direction ends the streak.
+    const predMap = {};
+    for (const p of predictions) predMap[p.match_id] = p;
+    let streak = 0;
+    for (const m of finishedSorted) {
+      const pred = predMap[m.id];
+      if (!pred) break;                          // no pick → streak ends
+      if (isCorrectResult(pred, m)) streak++;
+      else break;                                // wrong direction → streak ends
+    }
+
     return {
       id:             user.id,
       name:           user.name || user.email?.split('@')[0] || 'User',
       pickedChampion: championPred?.team || null,
+      streak,
       ...score,
     };
   });
@@ -143,6 +191,13 @@ export async function getLeaderboard() {
     || b.result - a.result
     || (a.name || '').localeCompare(b.name || '')
   );
+
+  // Attach rank + trend (positive = moved up, negative = moved down)
+  standings.forEach((p, i) => {
+    p.rank  = i + 1;
+    p.trend = trendMap[p.id] != null ? trendMap[p.id] - (i + 1) : null;
+  });
+
   return { standings, champion };
 }
 

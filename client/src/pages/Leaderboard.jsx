@@ -8,31 +8,54 @@ const CLOSE = (
   </svg>
 );
 
-// ── FormSpark — mini bar chart of recent scores ───────────────────────────────
-function FormSpark({ seed }) {
-  const vals = [];
-  let s = (seed || 1) * 13 + 7;
-  for (let i = 0; i < 5; i++) {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    vals.push(s % 8);
+// Champion picks hidden until knockout stage (pick deadline = same date)
+const CHAMPION_LOCK_DATE = new Date('2026-06-28T19:00:00.000Z');
+
+// Grid columns (shared between header and row so they always align)
+function cols(showChampion) {
+  return showChampion
+    ? '44px 1fr 64px 68px 60px 64px 70px 110px'
+    : '44px 1fr 64px 68px 60px 64px 70px';
+}
+
+// ── Trend badge ▲2 / ▼1 / — ──────────────────────────────────────────────────
+function TrendBadge({ v }) {
+  if (v == null || v === 0) {
+    return (
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>—</span>
+    );
   }
+  const up = v > 0;
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, height: 22 }}>
-      {vals.map((v, i) => {
-        const h = 4 + v * 2.5;
-        const color =
-          v === 7 ? 'var(--green)' :
-          v >= 5  ? 'var(--cyan)'  :
-          v >= 3  ? 'var(--ink)'   :
-          v >= 1  ? 'var(--orange)': 'var(--line)';
-        return <div key={i} style={{ width: 4, height: h, background: color, borderRadius: 1 }} />;
-      })}
-    </div>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 2,
+      fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
+      color: up ? 'var(--green)' : 'var(--red)',
+    }}>
+      {up ? '▲' : '▼'}{Math.abs(v)}
+    </span>
   );
 }
 
-// Champion picks are hidden until knockout stage starts (same lock date as champion pick deadline)
-const CHAMPION_LOCK_DATE = new Date('2026-06-28T19:00:00.000Z');
+// ── Streak badge 5🔥 / 2 / — ─────────────────────────────────────────────────
+function StreakBadge({ v }) {
+  if (!v) {
+    return <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>—</span>;
+  }
+  const hot = v >= 3;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+      background: hot ? 'var(--orange)' : 'var(--bg-2)',
+      color: hot ? '#fff' : 'var(--ink)',
+      borderRadius: 999,
+      padding: '3px 9px',
+      fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11,
+    }}>
+      {v}{hot ? ' 🔥' : ''}
+    </span>
+  );
+}
 
 // ── Podium ────────────────────────────────────────────────────────────────────
 function Podium({ players, onSelect, showChampion }) {
@@ -84,16 +107,21 @@ function Podium({ players, onSelect, showChampion }) {
                 }}
               >
                 {showChampion && o.p.pickedChampion && (
-                  <div className="label" style={{ color: 'var(--muted)' }}>
+                  <div className="label" style={{ color: 'var(--muted)', marginBottom: 2 }}>
                     {getFlag(o.p.pickedChampion)} {o.p.pickedChampion.toUpperCase()} TO WIN
                   </div>
                 )}
-                <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em', marginTop: 4, lineHeight: 1.1 }}>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em', marginTop: 2, lineHeight: 1.1 }}>
                   {o.p.name}
+                </div>
+                {/* Mini stat row under name */}
+                <div className="label" style={{ color: 'var(--muted)', marginTop: 5, display: 'flex', justifyContent: 'center', gap: 10 }}>
+                  <span>{o.p.exact ?? 0} perfect</span>
+                  <span>{o.p.correct ?? 0} correct</span>
                 </div>
                 <div style={{
                   fontFamily: 'var(--display)', fontSize: 28,
-                  letterSpacing: '-0.04em', color: o.color, marginTop: 2, lineHeight: 1,
+                  letterSpacing: '-0.04em', color: o.color, marginTop: 6, lineHeight: 1,
                 }}>
                   {o.p.total}
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, marginLeft: 3, fontWeight: 500, color: 'var(--muted)' }}>PTS</span>
@@ -116,23 +144,26 @@ function Podium({ players, onSelect, showChampion }) {
 
 // ── Full Table ────────────────────────────────────────────────────────────────
 function FullTable({ players, onSelect, showChampion }) {
+  const grid = cols(showChampion);
   return (
     <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: showChampion ? '50px 1fr 110px 70px 60px 64px' : '50px 1fr 70px 60px 64px',
-        gap: 10,
-        padding: '11px 16px',
+        gridTemplateColumns: grid,
+        gap: 8,
+        padding: '10px 16px',
         background: 'var(--ink)',
         color: 'var(--bg)',
       }} className="label">
         <div>#</div>
         <div>PLAYER</div>
+        <div style={{ textAlign: 'right' }}>TOTAL</div>
+        <div style={{ textAlign: 'center' }}>TREND</div>
+        <div style={{ textAlign: 'center' }}>PERFECT</div>
+        <div style={{ textAlign: 'center' }}>CORRECT</div>
+        <div style={{ textAlign: 'center' }}>STREAK</div>
         {showChampion && <div style={{ textAlign: 'center' }}>CHAMPION</div>}
-        <div style={{ textAlign: 'center' }}>EXACT</div>
-        <div style={{ textAlign: 'center' }}>FORM</div>
-        <div style={{ textAlign: 'right' }}>PTS</div>
       </div>
 
       {/* Rows */}
@@ -144,9 +175,9 @@ function FullTable({ players, onSelect, showChampion }) {
         const rankFg =
           i === 0 ? 'var(--ink)' :
           i === 1 || i === 2 ? '#fff' : 'var(--muted)';
-
         return (
-          <TableRow key={p.id} p={p} i={i} rankColor={rankColor} rankFg={rankFg} onSelect={onSelect} showChampion={showChampion} />
+          <TableRow key={p.id} p={p} i={i} rankColor={rankColor} rankFg={rankFg}
+                    onSelect={onSelect} showChampion={showChampion} grid={grid} />
         );
       })}
 
@@ -159,7 +190,7 @@ function FullTable({ players, onSelect, showChampion }) {
   );
 }
 
-function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
+function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -168,9 +199,9 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: showChampion ? '50px 1fr 110px 70px 60px 64px' : '50px 1fr 70px 60px 64px',
-        gap: 10,
-        padding: '13px 16px',
+        gridTemplateColumns: grid,
+        gap: 8,
+        padding: '12px 16px',
         alignItems: 'center',
         borderBottom: '1px solid var(--line)',
         cursor: 'pointer',
@@ -178,7 +209,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
         transition: 'background .12s',
       }}
     >
-      {/* Rank */}
+      {/* Rank badge */}
       <div style={{
         width: 32, height: 32,
         background: rankColor,
@@ -187,22 +218,57 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.03em',
         border: rankColor === 'transparent' ? '1.5px solid var(--line)' : 'none',
+        flexShrink: 0,
       }}>{i + 1}</div>
 
-      {/* Name */}
-      <div>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
+      {/* Player name + sub-label */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {p.name}
+        </div>
         <div className="label" style={{ color: 'var(--muted)', marginTop: 1 }}>
-          {p.exact} exact · {p.total} total pts
+          #{i + 1} overall
         </div>
       </div>
 
-      {/* Champion — only shown after knockout starts */}
+      {/* Total points */}
+      <div style={{
+        textAlign: 'right',
+        fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.03em',
+      }}>{p.total ?? 0}</div>
+
+      {/* Trend */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <TrendBadge v={p.trend} />
+      </div>
+
+      {/* Perfect (exact scores = 7 pts) */}
+      <div style={{ textAlign: 'center' }}>
+        <span style={{
+          fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
+          color: (p.exact ?? 0) > 0 ? 'var(--green)' : 'var(--muted)',
+        }}>{p.exact ?? 0}</span>
+      </div>
+
+      {/* Correct (right direction) */}
+      <div style={{ textAlign: 'center' }}>
+        <span style={{
+          fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
+          color: (p.correct ?? 0) > 0 ? 'var(--blue)' : 'var(--muted)',
+        }}>{p.correct ?? 0}</span>
+      </div>
+
+      {/* Streak */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <StreakBadge v={p.streak ?? 0} />
+      </div>
+
+      {/* Champion — only after knockout starts */}
       {showChampion && (
-        <div style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', minWidth: 0 }}>
           {p.pickedChampion ? (
             <>
-              <span style={{ fontSize: 14 }}>{getFlag(p.pickedChampion)}</span>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>{getFlag(p.pickedChampion)}</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.pickedChampion}</span>
             </>
           ) : (
@@ -210,25 +276,6 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion }) {
           )}
         </div>
       )}
-
-      {/* Exact */}
-      <div style={{ textAlign: 'center' }}>
-        <span style={{
-          fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
-          background: 'var(--bg-2)', padding: '3px 8px', borderRadius: 4,
-        }}>{p.exact ?? 0}</span>
-      </div>
-
-      {/* Form spark */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <FormSpark seed={p.id?.charCodeAt?.(0) || i + 1} />
-      </div>
-
-      {/* Points */}
-      <div style={{
-        textAlign: 'right',
-        fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.03em',
-      }}>{p.total ?? 0}</div>
     </div>
   );
 }
@@ -253,9 +300,6 @@ function PlayerModal({ player, onClose, showChampion }) {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
-
-  const totalEarned = picks?.reduce((s, p) => s + (p.points ?? 0), 0) ?? 0;
-  const withPred    = picks?.filter((p) => p.pred_home !== null) ?? [];
 
   return (
     <div
@@ -313,10 +357,10 @@ function PlayerModal({ player, onClose, showChampion }) {
           borderBottom: '1px solid var(--line)',
         }}>
           {[
-            { l: 'TOTAL POINTS', v: player.total, c: 'var(--ink)' },
-            { l: 'EXACT SCORES', v: player.exact ?? 0, c: 'var(--green)' },
-            { l: 'PTS SHOWN',    v: totalEarned,  c: 'var(--blue)' },
-            { l: 'PICKS SHOWN',  v: withPred.length, c: 'var(--red)' },
+            { l: 'TOTAL POINTS', v: player.total ?? 0,   c: 'var(--ink)'   },
+            { l: 'PERFECT',      v: player.exact ?? 0,   c: 'var(--green)' },
+            { l: 'CORRECT',      v: player.correct ?? 0, c: 'var(--blue)'  },
+            { l: 'STREAK',       v: player.streak ?? 0,  c: (player.streak ?? 0) >= 3 ? 'var(--orange)' : 'var(--ink)' },
           ].map((s, i) => (
             <div key={s.l} style={{
               padding: '12px 16px',
@@ -324,13 +368,13 @@ function PlayerModal({ player, onClose, showChampion }) {
             }}>
               <div className="label" style={{ color: 'var(--muted)', marginBottom: 4 }}>{s.l}</div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 24, letterSpacing: '-0.03em', color: s.c }}>
-                {s.v}
+                {s.v}{s.l === 'STREAK' && (player.streak ?? 0) >= 3 ? ' 🔥' : ''}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Picks */}
+        {/* Picks list */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading && (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.1em' }}>
@@ -360,11 +404,11 @@ function PickRow({ pick, last }) {
   const pts = hasPred ? (pick.points ?? 0) : null;
 
   const ptsColor =
-    pts === 7   ? 'var(--green)'  :
-    pts >= 5    ? 'var(--cyan)'   :
-    pts >= 3    ? 'var(--blue)'   :
-    pts >= 2    ? 'var(--orange)' :
-    pts !== null ? 'var(--line)'  : 'var(--bg-2)';
+    pts === 7    ? 'var(--green)'  :
+    pts >= 5     ? 'var(--cyan)'   :
+    pts >= 3     ? 'var(--blue)'   :
+    pts >= 2     ? 'var(--orange)' :
+    pts !== null ? 'var(--line)'   : 'var(--bg-2)';
   const ptsFg = ptsColor === 'var(--line)' || ptsColor === 'var(--bg-2)' ? 'var(--muted)' : '#fff';
 
   const stageLabel =
@@ -403,14 +447,10 @@ function PickRow({ pick, last }) {
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.away_team}</span>
       </div>
       <div style={{
-        background: ptsColor,
-        color: ptsFg,
-        borderRadius: 999,
-        textAlign: 'center',
+        background: ptsColor, color: ptsFg,
+        borderRadius: 999, textAlign: 'center',
         padding: '4px 8px',
-        fontFamily: 'var(--mono)',
-        fontWeight: 700,
-        fontSize: 12,
+        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
       }}>
         {hasPred ? (pts > 0 ? `+${pts}` : '0') : '–'}
       </div>
@@ -441,11 +481,10 @@ export default function Leaderboard() {
   }
 
   const standings = data.standings || [];
-  // Show champion picks only after the knockout stage begins (same date as pick lock)
   const knockoutStarted = Date.now() >= CHAMPION_LOCK_DATE.getTime();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1000 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}>
       {/* Section header */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16,
@@ -454,7 +493,11 @@ export default function Leaderboard() {
         <div>
           <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
             POOL STANDINGS · {standings.length} PLAYERS · SEASON 2026
-            {data.champion && <span style={{ marginLeft: 10, color: 'var(--green)' }}>● CHAMPION: {data.champion.toUpperCase()}</span>}
+            {data.champion && (
+              <span style={{ marginLeft: 10, color: 'var(--green)' }}>
+                ● CHAMPION: {data.champion.toUpperCase()}
+              </span>
+            )}
           </div>
           <h2 style={{
             fontFamily: 'var(--display)', fontSize: 36,

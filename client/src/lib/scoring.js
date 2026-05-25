@@ -3,6 +3,25 @@
  * Pure functions — no imports needed.
  */
 
+/**
+ * Returns true when the prediction chose the correct result direction
+ * (home win / away win / draw), independent of exact scores.
+ */
+export function isCorrectResult(pred, match) {
+  if (!match.finished || match.home_score == null || !pred) return false;
+  const ph = Number(pred.home_score);
+  const pa = Number(pred.away_score);
+  const rh = Number(match.home_score);
+  const ra = Number(match.away_score);
+  const predDir = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
+  const realDir  = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
+  // For knockout, respect the 'winner' override (extra time / penalties)
+  const effectiveReal = match.stage !== 'group' && match.winner
+    ? (match.winner === 'home' ? 'W' : 'L')
+    : realDir;
+  return predDir === effectiveReal;
+}
+
 export function calcMatchPoints(pred, match) {
   if (!match.finished || match.home_score == null) return 0;
 
@@ -37,7 +56,7 @@ export function calcMatchPoints(pred, match) {
 }
 
 export function calcScore({ predictions, matches, championPred, champion }) {
-  let group = 0, knockout = 0, championPts = 0, exact = 0, result = 0;
+  let group = 0, knockout = 0, championPts = 0, exact = 0, result = 0, correct = 0;
   const predicted = predictions.length;
 
   for (const pred of predictions) {
@@ -48,9 +67,11 @@ export function calcScore({ predictions, matches, championPred, champion }) {
       if (match.stage === 'group') group += pts; else knockout += pts;
       if (pts === 7) exact++; else result++;
     }
+    // 'correct' = direction right (home win / away win / draw), regardless of exact scores
+    if (isCorrectResult(pred, match)) correct++;
   }
 
   if (champion && championPred && championPred.team === champion) championPts = 50;
 
-  return { total: group + knockout + championPts, group, knockout, champion: championPts, exact, result, predicted };
+  return { total: group + knockout + championPts, group, knockout, champion: championPts, exact, result, correct, predicted };
 }
