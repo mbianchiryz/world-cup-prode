@@ -995,7 +995,7 @@ export default function Predictions() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
       {/* Progress header */}
       <div style={{
         background: 'var(--ink)', color: 'var(--bg)',

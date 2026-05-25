@@ -504,7 +504,7 @@ export default function Home() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
       <Hero nextMatch={nextMatch} onNavigate={navigate} />
       <FactsRow />
       <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>

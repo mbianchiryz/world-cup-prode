@@ -149,7 +149,7 @@ export default function Groups() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
       {/* Section header */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16,
