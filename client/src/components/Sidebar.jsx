@@ -106,7 +106,7 @@ function SidebarContent({ user, onLogout, location, navigate }) {
           borderRadius: 'var(--r)',
           marginBottom: 4,
         }}>
-          <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>TOURNAMENT</div>
+          <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>FIFA WORLD CUP 2026</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{
               width: 8, height: 8, borderRadius: 999,
