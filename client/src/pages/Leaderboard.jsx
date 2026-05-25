@@ -92,13 +92,14 @@ function Podium({ players, onSelect, showChampion }) {
         margin: '0 0 28px',
       }}>Top of the pool.</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'flex-end' }}>
+      <div className="podium-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'flex-end' }}>
         {order.map((o) => {
           if (!o.p) return <div key={o.rank} />;
           return (
             <div key={o.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div
                 onClick={() => onSelect(o.p)}
+                className="podium-card"
                 style={{
                   background: 'var(--bg)', color: 'var(--ink)',
                   padding: '12px 14px', borderRadius: 'var(--r)',
@@ -111,15 +112,15 @@ function Podium({ players, onSelect, showChampion }) {
                     {getFlag(o.p.pickedChampion)} {o.p.pickedChampion.toUpperCase()} TO WIN
                   </div>
                 )}
-                <div style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em', marginTop: 2, lineHeight: 1.1 }}>
+                <div className="podium-name" style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em', marginTop: 2, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {o.p.name}
                 </div>
-                {/* Mini stat row under name */}
-                <div className="label" style={{ color: 'var(--muted)', marginTop: 5, display: 'flex', justifyContent: 'center', gap: 10 }}>
+                {/* Mini stat row — hidden on mobile */}
+                <div className="podium-mini label" style={{ color: 'var(--muted)', marginTop: 5, display: 'flex', justifyContent: 'center', gap: 10 }}>
                   <span>{o.p.exact ?? 0} perfect</span>
                   <span>{o.p.correct ?? 0} correct</span>
                 </div>
-                <div style={{
+                <div className="podium-pts" style={{
                   fontFamily: 'var(--display)', fontSize: 28,
                   letterSpacing: '-0.04em', color: o.color, marginTop: 6, lineHeight: 1,
                 }}>
@@ -127,7 +128,7 @@ function Podium({ players, onSelect, showChampion }) {
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, marginLeft: 3, fontWeight: 500, color: 'var(--muted)' }}>PTS</span>
                 </div>
               </div>
-              <div style={{
+              <div className="podium-block" style={{
                 background: o.color, color: o.fg,
                 height: o.h, width: '100%',
                 borderRadius: 'var(--r-sm) var(--r-sm) 0 0',
@@ -155,7 +156,7 @@ function FullTable({ players, onSelect, showChampion }) {
         padding: '10px 16px',
         background: 'var(--ink)',
         color: 'var(--bg)',
-      }} className="label">
+      }} className="lb-grid lb-header label">
         <div>#</div>
         <div>PLAYER</div>
         <div style={{ textAlign: 'right' }}>TOTAL</div>
@@ -208,6 +209,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         background: hovered ? 'var(--bg-2)' : 'transparent',
         transition: 'background .12s',
       }}
+      className="lb-grid"
     >
       {/* Rank badge */}
       <div style={{
@@ -221,10 +223,24 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         flexShrink: 0,
       }}>{i + 1}</div>
 
-      {/* Player name + sub-label */}
+      {/* Player name + mobile compact stats (hidden on desktop) */}
       <div style={{ minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {p.name}
+        </div>
+        {/* Shown only on mobile via CSS */}
+        <div className="lb-mobile-stats" style={{ display: 'none', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>
+            {p.exact ?? 0} ★
+          </span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--blue)', fontWeight: 700 }}>
+            {p.correct ?? 0} ✓
+          </span>
+          {(p.streak ?? 0) > 0 && (
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: (p.streak ?? 0) >= 3 ? 'var(--orange)' : 'var(--muted)', fontWeight: 700 }}>
+              {p.streak}{(p.streak ?? 0) >= 3 ? ' 🔥' : ' str'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -235,12 +251,12 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
       }}>{p.total ?? 0}</div>
 
       {/* Trend */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div className="lb-col-trend" style={{ display: 'flex', justifyContent: 'center' }}>
         <TrendBadge v={p.trend} />
       </div>
 
       {/* Perfect (exact scores = 7 pts) */}
-      <div style={{ textAlign: 'center' }}>
+      <div className="lb-col-perfect" style={{ textAlign: 'center' }}>
         <span style={{
           fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
           color: (p.exact ?? 0) > 0 ? 'var(--green)' : 'var(--muted)',
@@ -248,7 +264,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
       </div>
 
       {/* Correct (right direction) */}
-      <div style={{ textAlign: 'center' }}>
+      <div className="lb-col-correct" style={{ textAlign: 'center' }}>
         <span style={{
           fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
           color: (p.correct ?? 0) > 0 ? 'var(--blue)' : 'var(--muted)',
@@ -256,13 +272,13 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
       </div>
 
       {/* Streak */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div className="lb-col-streak" style={{ display: 'flex', justifyContent: 'center' }}>
         <StreakBadge v={p.streak ?? 0} />
       </div>
 
       {/* Champion — only after knockout starts */}
       {showChampion && (
-        <div style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', minWidth: 0 }}>
+        <div className="lb-col-champion" style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', minWidth: 0 }}>
           {p.pickedChampion ? (
             <>
               <span style={{ fontSize: 14, flexShrink: 0 }}>{getFlag(p.pickedChampion)}</span>
@@ -348,7 +364,7 @@ function PlayerModal({ player, onClose, showChampion }) {
         </div>
 
         {/* Stats strip */}
-        <div style={{
+        <div className="modal-stats" style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
           background: 'var(--bg-2)',
           borderBottom: '1px solid var(--line)',

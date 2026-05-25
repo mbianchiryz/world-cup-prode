@@ -94,3 +94,45 @@ input[type='number'] { -moz-appearance: textfield; }
   70%  { box-shadow: 0 0 0 8px rgba(0, 184, 82, 0); }
   100% { box-shadow: 0 0 0 0 rgba(0, 184, 82, 0); }
 }
+
+/* ─── Mobile responsive (< 640 px) ──────────────────────────────────────── */
+@media (max-width: 639px) {
+
+  /* App main content area */
+  .main-pad { padding: 16px 16px 40px !important; }
+
+  /* Hero block padding */
+  .hero-pad { padding: 26px 20px 28px !important; min-height: auto !important; }
+
+  /* Generic grid stacking */
+  .mob-1col { grid-template-columns: 1fr !important; }
+  .mob-2col { grid-template-columns: 1fr 1fr !important; }
+  .mob-3col { grid-template-columns: repeat(3, 1fr) !important; }
+
+  /* ── Leaderboard table ──────────────────────────────────────────────── */
+  /* Collapse to rank | name+stats | pts on mobile */
+  .lb-grid    { grid-template-columns: 44px 1fr 52px !important; gap: 6px !important; }
+  .lb-header  { display: none !important; }          /* full header hidden — stats shown inline */
+
+  /* Hide individual stat columns */
+  .lb-col-trend,
+  .lb-col-perfect,
+  .lb-col-correct,
+  .lb-col-streak,
+  .lb-col-champion { display: none !important; }
+
+  /* Show compact stats line inside name cell */
+  .lb-mobile-stats { display: flex !important; }
+
+  /* Modal stats strip: 4 cols → 2×2 on mobile */
+  .modal-stats { grid-template-columns: 1fr 1fr !important; }
+  .modal-stats > div { border-right: none !important; border-bottom: 1px solid var(--line); }
+
+  /* ── Podium ─────────────────────────────────────────────────────────── */
+  .podium-cols  { gap: 6px !important; }
+  .podium-block { font-size: 44px !important; min-height: 52px !important; height: auto !important; padding: 10px 0 !important; }
+  .podium-card  { padding: 8px 10px !important; }
+  .podium-name  { font-size: 14px !important; }
+  .podium-pts   { font-size: 20px !important; }
+  .podium-mini  { display: none !important; }  /* hide perfect/correct sub-line on mobile */
+}

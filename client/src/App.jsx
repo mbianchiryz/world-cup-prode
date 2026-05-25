@@ -56,7 +56,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} />
-      <main style={{ flex: 1, minWidth: 0, padding: '32px 36px', overflowX: 'hidden' }}>
+      <main className="main-pad" style={{ flex: 1, minWidth: 0, padding: '32px 36px', overflowX: 'hidden' }}>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/"            element={<Home />} />

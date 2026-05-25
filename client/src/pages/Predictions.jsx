@@ -779,7 +779,7 @@ function ChampionSection({ champ, onSave }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'start' }}>
+    <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'start' }}>
       {/* Left: yellow hero panel */}
       <div style={{
         background: 'var(--yellow)', color: 'var(--ink)',
@@ -895,7 +895,7 @@ function ChampionSection({ champ, onSave }) {
                 boxSizing: 'border-box',
               }}
             />
-            <div style={{
+            <div className="mob-3col" style={{
               display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
               maxHeight: 260, overflowY: 'auto',
             }}>

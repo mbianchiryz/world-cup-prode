@@ -72,7 +72,7 @@ function Hero({ nextMatch, onNavigate }) {
   const cd = useCountdown(nextMatch?.match_time);
 
   return (
-    <div style={{
+    <div className="hero-pad" style={{
       background: 'var(--ink)',
       color: 'var(--bg)',
       borderRadius: 'var(--r-xl)',
@@ -96,7 +96,7 @@ function Hero({ nextMatch, onNavigate }) {
         userSelect: 'none',
       }}>26</div>
 
-      <div style={{
+      <div className="mob-1col" style={{
         position: 'relative',
         zIndex: 1,
         display: 'grid',
@@ -240,7 +240,7 @@ function Hero({ nextMatch, onNavigate }) {
 // ── Facts row ─────────────────────────────────────────────────────────────────
 function FactsRow() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+    <div className="mob-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
       {FACTS.map((f) => {
         const isYellow = f.color === 'var(--yellow)';
         return (
@@ -500,11 +500,11 @@ export default function Home() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100 }}>
       <Hero nextMatch={nextMatch} onNavigate={navigate} />
       <FactsRow />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
+      <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
         <RecentResults matches={matches} />
         <TopOfPool standings={leaderboard.standings || []} onNavigate={navigate} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <ScoringRules />
         <HostCities />
       </div>
