@@ -58,13 +58,24 @@ const SCORING = [
 ];
 const SCORING_COLORS = ['var(--green)', 'var(--cyan)', 'var(--blue)', 'var(--orange)', 'var(--yellow)'];
 
+// All 16 official 2026 FIFA World Cup host cities (USA ×11, MEX ×3, CAN ×2)
 const CITIES = [
-  { name: 'New York',     country: 'USA', color: 'var(--red)' },
-  { name: 'Los Angeles',  country: 'USA', color: 'var(--blue)' },
-  { name: 'Dallas',       country: 'USA', color: 'var(--green)' },
-  { name: 'Miami',        country: 'USA', color: 'var(--pink)' },
-  { name: 'Mexico City',  country: 'MEX', color: 'var(--yellow)' },
-  { name: 'Toronto',      country: 'CAN', color: 'var(--cyan)' },
+  { name: 'New York',       country: 'USA', color: 'var(--red)'    },
+  { name: 'Los Angeles',    country: 'USA', color: 'var(--blue)'   },
+  { name: 'Dallas',         country: 'USA', color: 'var(--green)'  },
+  { name: 'San Francisco',  country: 'USA', color: 'var(--orange)' },
+  { name: 'Miami',          country: 'USA', color: 'var(--pink)'   },
+  { name: 'Seattle',        country: 'USA', color: 'var(--cyan)'   },
+  { name: 'Atlanta',        country: 'USA', color: 'var(--purple)' },
+  { name: 'Boston',         country: 'USA', color: 'var(--red)'    },
+  { name: 'Philadelphia',   country: 'USA', color: 'var(--blue)'   },
+  { name: 'Kansas City',    country: 'USA', color: 'var(--green)'  },
+  { name: 'Houston',        country: 'USA', color: 'var(--orange)' },
+  { name: 'Toronto',        country: 'CAN', color: 'var(--cyan)'   },
+  { name: 'Vancouver',      country: 'CAN', color: 'var(--pink)'   },
+  { name: 'Mexico City',    country: 'MEX', color: 'var(--yellow)' },
+  { name: 'Guadalajara',    country: 'MEX', color: 'var(--purple)' },
+  { name: 'Monterrey',      country: 'MEX', color: 'var(--red)'    },
 ];
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
@@ -362,11 +373,6 @@ function TopOfPool({ standings, onNavigate }) {
                 }}>{i + 1}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                  {p.pickedChampion && (
-                    <div className="label" style={{ color: 'var(--muted)', marginTop: 2 }}>
-                      {getFlag(p.pickedChampion)} {p.pickedChampion.toUpperCase()} TO WIN
-                    </div>
-                  )}
                 </div>
                 <div style={{
                   fontFamily: 'var(--display)', fontSize: 26,
@@ -441,23 +447,24 @@ function HostCities() {
         fontFamily: 'var(--mono)', fontSize: 10.5,
         letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
       }}>Host Cities · 16 Stadiums</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div className="mob-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {CITIES.map((c, i) => {
+          const cols = 4;
           const isYellow = c.color === 'var(--yellow)';
           return (
             <div key={c.name} style={{
               background: c.color,
               color: isYellow ? 'var(--ink)' : '#fff',
-              padding: '16px 14px',
-              minHeight: 80,
+              padding: '13px 12px',
+              minHeight: 66,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              borderRight: (i % 3 !== 2) ? '1px solid rgba(255,255,255,0.18)' : 'none',
-              borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.18)' : 'none',
+              borderRight: (i % cols !== cols - 1) ? '1px solid rgba(255,255,255,0.18)' : 'none',
+              borderBottom: i < CITIES.length - cols ? '1px solid rgba(255,255,255,0.18)' : 'none',
             }}>
-              <div className="label" style={{ opacity: 0.8 }}>{c.country}</div>
-              <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <div className="label" style={{ opacity: 0.8, fontSize: 9 }}>{c.country}</div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 13, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                 {c.name}
               </div>
             </div>
