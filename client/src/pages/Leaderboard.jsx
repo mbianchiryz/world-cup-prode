@@ -226,9 +226,6 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {p.name}
         </div>
-        <div className="label" style={{ color: 'var(--muted)', marginTop: 1 }}>
-          #{i + 1} overall
-        </div>
       </div>
 
       {/* Total points */}
