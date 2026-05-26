@@ -26,11 +26,17 @@ const SUPABASE_SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-/** Map api-football round string → our stage / group_name */
-function parseRound(round: string): { stage: string; group_name: string | null } {
+/** Map api-football round + group → our stage / group_name / matchday */
+function parseRound(
+  round: string,
+  group: string | null | undefined
+): { stage: string; group_name: string | null; matchday: number | null } {
   if (round.startsWith('Group Stage')) {
-    const g = round.split(' - ')[1] ?? null;
-    return { stage: 'group', group_name: g };
+    // round  = "Group Stage - 1"  (1/2/3 = matchday)
+    // group  = "Group A"          (actual group letter)
+    const matchday  = parseInt(round.split(' - ')[1]) || null;
+    const group_name = group ? group.replace(/^Group\s*/i, '').trim() : null;
+    return { stage: 'group', group_name, matchday };
   }
   const map: Record<string, string> = {
     'Round of 32':    'r32',
@@ -43,6 +49,7 @@ function parseRound(round: string): { stage: string; group_name: string | null }
   return {
     stage: map[round] ?? round.toLowerCase().replace(/[\s-]+/g, '_'),
     group_name: null,
+    matchday: null,
   };
 }
 
@@ -72,7 +79,7 @@ Deno.serve(async () => {
   }
 
   const rows = fixtures.map((f: any) => {
-    const { stage, group_name } = parseRound(f.league.round);
+    const { stage, group_name, matchday } = parseRound(f.league.round, f.league.group);
     const statusShort = f.fixture.status.short;
     const finished    = ['FT', 'AET', 'PEN'].includes(statusShort);
 
@@ -96,7 +103,7 @@ Deno.serve(async () => {
       match_time: f.fixture.date,
       stage,
       group_name,
-      matchday:   null,
+      matchday,
       home_score: finished ? f.goals.home : null,
       away_score: finished ? f.goals.away : null,
       finished,
