@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { getFlag } from '@/lib/matches-data';
-import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
+import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats, getMatchMeta } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -118,8 +118,69 @@ function CountdownBadge({ matchTime, finished }) {
   );
 }
 
+// ── Match meta: prediction + H2H strip ───────────────────────────────────────
+function h2hSummary(h2h, homeTeam) {
+  if (!h2h || !h2h.length) return null;
+  const last5 = h2h.slice(0, 5);
+  let w = 0, d = 0, l = 0;
+  for (const m of last5) {
+    const isHome = m.home === homeTeam;
+    if (m.home_score === m.away_score) d++;
+    else if ((isHome && m.home_score > m.away_score) || (!isHome && m.away_score > m.home_score)) w++;
+    else l++;
+  }
+  return `${w}W ${d}D ${l}L`;
+}
+
+function MetaStrip({ meta, homeTeam }) {
+  if (!meta) return null;
+  const { pred_home_pct: hp, pred_draw_pct: dp, pred_away_pct: ap,
+          pred_home_score: hs, pred_away_score: as_, h2h } = meta;
+  const hasProbs = hp != null && dp != null && ap != null;
+  const hasScore = hs != null && as_ != null;
+  const summary  = h2hSummary(h2h, homeTeam);
+  if (!hasProbs && !summary) return null;
+
+  return (
+    <div style={{
+      padding: '8px 16px 10px',
+      borderTop: '1px solid var(--line)',
+      display: 'flex', flexDirection: 'column', gap: 5,
+    }}>
+      {hasProbs && (
+        <>
+          {/* Probability bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--green)', fontWeight: 700, width: 26 }}>{hp}%</span>
+            <div style={{ flex: 1, height: 3, borderRadius: 2, overflow: 'hidden', display: 'flex', background: 'var(--line)' }}>
+              <div style={{ width: `${hp}%`, background: 'var(--green)', height: '100%' }} />
+              <div style={{ width: `${dp}%`, background: 'var(--muted)', height: '100%' }} />
+              <div style={{ width: `${ap}%`, background: 'var(--red)', height: '100%' }} />
+            </div>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--red)', fontWeight: 700, width: 26, textAlign: 'right' }}>{ap}%</span>
+          </div>
+          {/* Predicted score + H2H */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+              🤖 {hasScore ? `${hs}–${as_}` : '?–?'}
+            </span>
+            {summary && (
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+                H2H {summary}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+      {!hasProbs && summary && (
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>H2H {summary}</span>
+      )}
+    </div>
+  );
+}
+
 // ── MatchCard ─────────────────────────────────────────────────────────────────
-function MatchCard({ match, pred, onSave }) {
+function MatchCard({ match, pred, meta, onSave }) {
   const locked  = isLocked(match.match_time);
   const canEdit = !match.finished && !locked && match.home_team !== 'TBD' && match.away_team !== 'TBD';
 
@@ -263,6 +324,9 @@ function MatchCard({ match, pred, onSave }) {
           </span>
         </div>
       </div>
+
+      {/* AI prediction + H2H strip (upcoming matches only) */}
+      {!match.finished && <MetaStrip meta={meta} homeTeam={match.home_team} />}
 
       {/* Footer: countdown + save */}
       <div style={{
@@ -581,7 +645,7 @@ function PillBtn({ active, onClick, children }) {
 }
 
 // ── Group Stage section ───────────────────────────────────────────────────────
-function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
+function GroupStageSection({ matches, preds, metas, onSave, pendingOnly }) {
   const [md, setMd] = useState('all');
 
   const filtered = useMemo(() => {
@@ -606,7 +670,7 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
           ))}
         </div>
       )}
@@ -629,7 +693,7 @@ function EmptyState({ pendingOnly }) {
 }
 
 // ── Knockout section ──────────────────────────────────────────────────────────
-function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
+function KnockoutSection({ matches, preds, metas, onSave, pendingOnly }) {
   const [view, setView] = useState('bracket');
 
   const viewOptions = [
@@ -678,7 +742,7 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
                 )}>
                   {icon} {label}
                 </div>
-                <MatchCard match={m} pred={preds[m.id]} onSave={onSave} />
+                <MatchCard match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
               </div>
             );
           })}
@@ -686,7 +750,7 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
           ))}
         </div>
       )}
@@ -943,6 +1007,7 @@ function TeamBtn({ team, selected, onClick }) {
 export default function Predictions() {
   const [matches, setMatches] = useState([]);
   const [preds, setPreds]     = useState({});
+  const [metas, setMetas]     = useState({});
   const [champ, setChamp]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState('group');     // 'group' | 'knockout'
@@ -961,6 +1026,15 @@ export default function Predictions() {
       for (const p of predictions) map[p.match_id] = p;
       setPreds(map);
       setChamp(champData);
+
+      // Fetch AI predictions + H2H for upcoming matches (best-effort, silent fail)
+      try {
+        const upcomingIds = ms.filter((m) => !m.finished).map((m) => m.id);
+        if (upcomingIds.length) {
+          const metaMap = await getMatchMeta(upcomingIds);
+          setMetas(metaMap);
+        }
+      } catch (_) { /* no meta = strip stays hidden */ }
     } finally {
       setLoading(false);
     }
@@ -1043,10 +1117,10 @@ export default function Predictions() {
 
       {/* Content */}
       {section === 'group' && (
-        <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
+        <GroupStageSection matches={matches} preds={preds} metas={metas} onSave={savePred} pendingOnly={pendingOnly} />
       )}
       {section === 'knockout' && (
-        <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
+        <KnockoutSection matches={matches} preds={preds} metas={metas} onSave={savePred} pendingOnly={pendingOnly} />
       )}
       {section === 'champion' && champ && (
         <ChampionSection champ={champ} onSave={saveChamp} />

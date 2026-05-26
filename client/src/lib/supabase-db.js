@@ -313,3 +313,15 @@ export async function getUserPicks(userId) {
   const userName = profile.name || profile.email?.split('@')[0] || 'User';
   return { user: { id: profile.id, name: userName }, picks };
 }
+
+// ── Match meta: predictions + H2H from api-football ──────────────────────────
+export async function getMatchMeta(fixtureIds) {
+  if (!fixtureIds || !fixtureIds.length) return {};
+  const { data } = await supabase
+    .from('match_meta')
+    .select('*')
+    .in('fixture_id', fixtureIds);
+  const map = {};
+  for (const m of (data || [])) map[m.fixture_id] = m;
+  return map;
+}

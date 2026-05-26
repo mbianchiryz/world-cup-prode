@@ -97,10 +97,12 @@ Deno.serve(async () => {
     }
 
     return {
-      id:         f.fixture.id,
-      home_team:  f.teams.home.name,
-      away_team:  f.teams.away.name,
-      match_time: f.fixture.date,
+      id:           f.fixture.id,
+      home_team:    f.teams.home.name,
+      away_team:    f.teams.away.name,
+      home_team_id: f.teams.home.id,
+      away_team_id: f.teams.away.id,
+      match_time:   f.fixture.date,
       stage,
       group_name,
       matchday,
