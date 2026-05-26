@@ -132,49 +132,21 @@ function h2hSummary(h2h, homeTeam) {
   return `${w}W ${d}D ${l}L`;
 }
 
-function MetaStrip({ meta, homeTeam }) {
+function MetaStrip({ meta, homeTeam, awayTeam }) {
   if (!meta) return null;
-  const { pred_home_pct: hp, pred_draw_pct: dp, pred_away_pct: ap,
-          pred_home_score: hs, pred_away_score: as_, h2h } = meta;
-  const hasProbs = hp != null && dp != null && ap != null;
-  const hasScore = hs != null && as_ != null;
-  const summary  = h2hSummary(h2h, homeTeam);
-  if (!hasProbs && !summary) return null;
+  const summary = h2hSummary(meta.h2h, homeTeam);
+  if (!summary) return null;
 
   return (
     <div style={{
-      padding: '8px 16px 10px',
+      padding: '7px 16px 8px',
       borderTop: '1px solid var(--line)',
-      display: 'flex', flexDirection: 'column', gap: 5,
+      display: 'flex', alignItems: 'center', gap: 6,
     }}>
-      {hasProbs && (
-        <>
-          {/* Probability bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--green)', fontWeight: 700, width: 26 }}>{hp}%</span>
-            <div style={{ flex: 1, height: 3, borderRadius: 2, overflow: 'hidden', display: 'flex', background: 'var(--line)' }}>
-              <div style={{ width: `${hp}%`, background: 'var(--green)', height: '100%' }} />
-              <div style={{ width: `${dp}%`, background: 'var(--muted)', height: '100%' }} />
-              <div style={{ width: `${ap}%`, background: 'var(--red)', height: '100%' }} />
-            </div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--red)', fontWeight: 700, width: 26, textAlign: 'right' }}>{ap}%</span>
-          </div>
-          {/* Predicted score + H2H */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-              🤖 {hasScore ? `${hs}–${as_}` : '?–?'}
-            </span>
-            {summary && (
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-                H2H {summary}
-              </span>
-            )}
-          </div>
-        </>
-      )}
-      {!hasProbs && summary && (
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>H2H {summary}</span>
-      )}
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.08em' }}>H2H</span>
+      <span style={{ fontSize: 14 }}>{getFlag(homeTeam)}</span>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink)', fontWeight: 600 }}>{summary}</span>
+      <span style={{ fontSize: 14 }}>{getFlag(awayTeam)}</span>
     </div>
   );
 }
@@ -326,7 +298,7 @@ function MatchCard({ match, pred, meta, onSave }) {
       </div>
 
       {/* AI prediction + H2H strip (upcoming matches only) */}
-      {!match.finished && <MetaStrip meta={meta} homeTeam={match.home_team} />}
+      {!match.finished && <MetaStrip meta={meta} homeTeam={match.home_team} awayTeam={match.away_team} />}
 
       {/* Footer: countdown + save */}
       <div style={{
