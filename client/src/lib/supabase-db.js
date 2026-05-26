@@ -201,8 +201,39 @@ export async function getLeaderboard() {
   return { standings, champion };
 }
 
-// ── Group standings (computed client-side from Supabase matches) ──────────────
+// ── Group standings — reads official api-football data, falls back to local calc ─
 export async function getGroupStandings() {
+  // 1. Try official standings synced from api-football
+  const { data: official, error: offErr } = await supabase
+    .from('group_standings')
+    .select('*')
+    .order('group_name')
+    .order('rank');
+
+  if (!offErr && official && official.length > 0) {
+    const grouped = {};
+    for (const row of official) {
+      if (!grouped[row.group_name]) grouped[row.group_name] = [];
+      grouped[row.group_name].push({
+        team: row.team,
+        flag: getFlag(row.team),
+        p:    row.played,
+        w:    row.won,
+        d:    row.drawn,
+        l:    row.lost,
+        gf:   row.goals_for,
+        ga:   row.goals_against,
+        gd:   row.goal_diff,
+        pts:  row.points,
+        form: row.form,
+      });
+    }
+    return Object.entries(grouped)
+      .map(([letter, standings]) => ({ letter, standings }))
+      .sort((a, b) => a.letter.localeCompare(b.letter));
+  }
+
+  // 2. Fallback: compute standings client-side from the matches table
   const { data: matches, error } = await supabase
     .from('matches')
     .select('*')

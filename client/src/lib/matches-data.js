@@ -56,6 +56,18 @@ export const TEAM_FLAGS = {
   'Sweden':                                 '🇸🇪',
   'Iraq':                                   '🇮🇶',
   'Congo DR':                               '🇨🇩',
+  // ── api-football alternate spellings ─────────────────────────────────────
+  'South Korea':                            '🇰🇷',
+  'Czech Republic':                         '🇨🇿',
+  'Turkey':                                 '🇹🇷',
+  'Iran':                                   '🇮🇷',
+  'DR Congo':                               '🇨🇩',
+  'Cape Verde':                             '🇨🇻',
+  'Ivory Coast':                            '🇨🇮',
+  "Cote d'Ivoire":                          '🇨🇮',
+  'Curacao':                                '🇨🇼',
+  'Bosnia & Herzegovina':                   '🇧🇦',
+  'United States':                          '🇺🇸',
 };
 
 /** Returns the flag emoji for a known team, or '' for placeholder/TBD entries */
