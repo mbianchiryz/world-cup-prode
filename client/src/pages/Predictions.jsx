@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { getFlag } from '@/lib/matches-data';
-import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats, getMatchMeta } from '@/lib/supabase-db';
+import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -118,43 +118,10 @@ function CountdownBadge({ matchTime, finished }) {
   );
 }
 
-// ── Match meta: prediction + H2H strip ───────────────────────────────────────
-function h2hSummary(h2h, homeTeam) {
-  if (!h2h || !h2h.length) return null;
-  const last5 = h2h.slice(0, 5);
-  let w = 0, d = 0, l = 0;
-  for (const m of last5) {
-    const isHome = m.home === homeTeam;
-    if (m.home_score === m.away_score) d++;
-    else if ((isHome && m.home_score > m.away_score) || (!isHome && m.away_score > m.home_score)) w++;
-    else l++;
-  }
-  return `${w}W ${d}D ${l}L`;
-}
-
-function MetaStrip({ meta, homeTeam, awayTeam }) {
-  if (!meta) return null;
-  const summary = h2hSummary(meta.h2h, homeTeam);
-  if (!summary) return null;
-
-  return (
-    <div style={{
-      padding: '7px 16px 8px',
-      borderTop: '1px solid var(--line)',
-      display: 'flex', alignItems: 'center', gap: 6,
-    }}>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.08em' }}>H2H</span>
-      <span style={{ fontSize: 14 }}>{getFlag(homeTeam)}</span>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink)', fontWeight: 600 }}>{summary}</span>
-      <span style={{ fontSize: 14 }}>{getFlag(awayTeam)}</span>
-    </div>
-  );
-}
-
 // ── MatchCard ─────────────────────────────────────────────────────────────────
-function MatchCard({ match, pred, meta, onSave }) {
+function MatchCard({ match, pred, onSave }) {
   const locked  = isLocked(match.match_time);
-  const canEdit = !match.finished && !locked && match.home_team !== 'TBD' && match.away_team !== 'TBD';
+  const canEdit = !match.finished && !locked && !isPlaceholder(match.home_team) && !isPlaceholder(match.away_team);
 
   const [h, setH] = useState(pred?.home_score ?? '');
   const [a, setA] = useState(pred?.away_score ?? '');
@@ -297,9 +264,6 @@ function MatchCard({ match, pred, meta, onSave }) {
         </div>
       </div>
 
-      {/* AI prediction + H2H strip (upcoming matches only) */}
-      {!match.finished && <MetaStrip meta={meta} homeTeam={match.home_team} awayTeam={match.away_team} />}
-
       {/* Footer: countdown + save */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -335,7 +299,7 @@ function MatchCard({ match, pred, meta, onSave }) {
 
 // ── Bracket match tile ────────────────────────────────────────────────────────
 function BracketTile({ match, pred, onSave }) {
-  const isTBD   = match.home_team === 'TBD' || match.away_team === 'TBD';
+  const isTBD   = isPlaceholder(match.home_team) || isPlaceholder(match.away_team);
   const locked  = isLocked(match.match_time);
   const canEdit = !match.finished && !locked && !isTBD;
 
@@ -477,6 +441,13 @@ function BracketView({ matches, preds, onSave }) {
   const finalMatch = matches.find((m) => m.stage === 'final');
   const thirdMatch = matches.find((m) => m.stage === '3rd');
 
+  // Height scales with the largest round (R32 = 16 matches)
+  const maxRoundSize = Math.max(
+    ...MAIN_ROUNDS.map((r) => matches.filter((m) => m.stage === r.stage).length),
+    1
+  );
+  const bracketMinHeight = Math.max(maxRoundSize * 88, 680);
+
   // ── Mobile: stacked rounds (each round as its own section) ──────────────────
   const mobileBracket = (
     <div className="md:hidden space-y-5">
@@ -520,7 +491,7 @@ function BracketView({ matches, preds, onSave }) {
   // ── Desktop: horizontal bracket columns ─────────────────────────────────────
   const desktopBracket = (
     <div className="hidden md:block overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-3 items-stretch" style={{ minHeight: '680px', minWidth: '960px' }}>
+      <div className="flex gap-3 items-stretch" style={{ minHeight: `${bracketMinHeight}px`, minWidth: '960px' }}>
         {MAIN_ROUNDS.map((round) => {
           const roundMatches = matches
             .filter((m) => m.stage === round.stage)
@@ -573,12 +544,21 @@ function BracketView({ matches, preds, onSave }) {
   );
 }
 
+// ── Bracket position label — "TBD", "1st A", "2nd B", "Best 3rd", etc. ───────
+// "TBD", "1st A", "2nd B", "3rd ABCDF", etc. → not a real team, no editing
+function isPlaceholder(teamName) {
+  if (!teamName) return true;
+  if (teamName === 'TBD') return true;
+  if (/^(1st|2nd|3rd)\s/.test(teamName)) return true;
+  return false;
+}
+
 // ── Helper: is a match still pickable & unpicked? ─────────────────────────────
 function isPending(match, pred) {
   if (pred) return false;
   if (match.finished) return false;
   if (isLocked(match.match_time)) return false;
-  if (match.home_team === 'TBD' || match.away_team === 'TBD') return false;
+  if (isPlaceholder(match.home_team) || isPlaceholder(match.away_team)) return false;
   return true;
 }
 
@@ -617,7 +597,7 @@ function PillBtn({ active, onClick, children }) {
 }
 
 // ── Group Stage section ───────────────────────────────────────────────────────
-function GroupStageSection({ matches, preds, metas, onSave, pendingOnly }) {
+function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
   const [md, setMd] = useState('all');
 
   const filtered = useMemo(() => {
@@ -642,7 +622,7 @@ function GroupStageSection({ matches, preds, metas, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
           ))}
         </div>
       )}
@@ -665,7 +645,7 @@ function EmptyState({ pendingOnly }) {
 }
 
 // ── Knockout section ──────────────────────────────────────────────────────────
-function KnockoutSection({ matches, preds, metas, onSave, pendingOnly }) {
+function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
   const [view, setView] = useState('bracket');
 
   const viewOptions = [
@@ -714,7 +694,7 @@ function KnockoutSection({ matches, preds, metas, onSave, pendingOnly }) {
                 )}>
                   {icon} {label}
                 </div>
-                <MatchCard match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
+                <MatchCard match={m} pred={preds[m.id]} onSave={onSave} />
               </div>
             );
           })}
@@ -722,7 +702,7 @@ function KnockoutSection({ matches, preds, metas, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} meta={metas?.[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
           ))}
         </div>
       )}
@@ -979,7 +959,6 @@ function TeamBtn({ team, selected, onClick }) {
 export default function Predictions() {
   const [matches, setMatches] = useState([]);
   const [preds, setPreds]     = useState({});
-  const [metas, setMetas]     = useState({});
   const [champ, setChamp]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState('group');     // 'group' | 'knockout'
@@ -999,14 +978,6 @@ export default function Predictions() {
       setPreds(map);
       setChamp(champData);
 
-      // Fetch AI predictions + H2H for upcoming matches (best-effort, silent fail)
-      try {
-        const upcomingIds = ms.filter((m) => !m.finished).map((m) => m.id);
-        if (upcomingIds.length) {
-          const metaMap = await getMatchMeta(upcomingIds);
-          setMetas(metaMap);
-        }
-      } catch (_) { /* no meta = strip stays hidden */ }
     } finally {
       setLoading(false);
     }
@@ -1089,10 +1060,10 @@ export default function Predictions() {
 
       {/* Content */}
       {section === 'group' && (
-        <GroupStageSection matches={matches} preds={preds} metas={metas} onSave={savePred} pendingOnly={pendingOnly} />
+        <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
       )}
       {section === 'knockout' && (
-        <KnockoutSection matches={matches} preds={preds} metas={metas} onSave={savePred} pendingOnly={pendingOnly} />
+        <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
       )}
       {section === 'champion' && champ && (
         <ChampionSection champ={champ} onSave={saveChamp} />
