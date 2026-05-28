@@ -1084,7 +1084,7 @@ export default function Predictions() {
 
       {/* Section switcher */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 'var(--r)', background: 'var(--bg-2)', border: '1.5px solid var(--line)' }}>
+        <div className="section-tabs" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 'var(--r)', background: 'var(--bg-2)', border: '1.5px solid var(--line)' }}>
           {[
             { value: 'group',    label: 'Group stage'   },
             { value: 'knockout', label: 'Knockout'      },

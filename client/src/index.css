@@ -107,6 +107,13 @@ input[type='number'] { -moz-appearance: textfield; }
   /* App main content area */
   .main-pad { padding: 16px 16px 40px !important; }
 
+  /* Section switcher tabs (Group stage / Knockout / Champion pick) */
+  .section-tabs { width: 100% !important; }
+  .section-tabs button { flex: 1 !important; justify-content: center !important; padding: 7px 6px !important; font-size: 12px !important; }
+
+  /* Prevent any element from overflowing the viewport */
+  .main-pad > * { max-width: 100%; }
+
   /* Hero block padding */
   .hero-pad { padding: 26px 20px 28px !important; min-height: auto !important; }
 
