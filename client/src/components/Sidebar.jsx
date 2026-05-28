@@ -188,7 +188,6 @@ export default function Sidebar({ user, onLogout }) {
     flexShrink: 0,
     background: 'var(--ink)',
     color: 'var(--bg)',
-    display: 'flex',
     flexDirection: 'column',
     height: '100vh',
     position: 'sticky',
@@ -250,12 +249,6 @@ export default function Sidebar({ user, onLogout }) {
         <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
       </aside>
 
-      <style>{`
-        @media (max-width: 639px) {
-          .mobile-header { display: flex !important; }
-          aside.hidden { display: none !important; }
-        }
-      `}</style>
     </>
   );
 }

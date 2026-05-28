@@ -98,6 +98,9 @@ input[type='number'] { -moz-appearance: textfield; }
 /* ─── Mobile responsive (< 640 px) ──────────────────────────────────────── */
 @media (max-width: 639px) {
 
+  /* Mobile top bar: override inline display:none */
+  .mobile-header { display: flex !important; }
+
   /* App main content area */
   .main-pad { padding: 16px 16px 40px !important; }
 
