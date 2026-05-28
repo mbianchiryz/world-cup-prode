@@ -70,6 +70,76 @@ export const TEAM_FLAGS = {
   'United States':                          '🇺🇸',
 };
 
+// ── 3-letter abbreviation map ─────────────────────────────────────────────────
+export const TEAM_ABBR = {
+  'Mexico':                    'MEX',
+  'South Africa':              'RSA',
+  'Korea Republic':            'KOR',
+  'Czechia':                   'CZE',
+  'Canada':                    'CAN',
+  'Bosnia and Herzegovina':    'BIH',
+  'Qatar':                     'QAT',
+  'Switzerland':               'SUI',
+  'Haiti':                     'HAI',
+  'Scotland':                  'SCO',
+  'Brazil':                    'BRA',
+  'Morocco':                   'MAR',
+  'USA':                       'USA',
+  'Paraguay':                  'PAR',
+  'Australia':                 'AUS',
+  'Türkiye':                   'TUR',
+  "Côte d'Ivoire":             'CIV',
+  'Ecuador':                   'ECU',
+  'Germany':                   'GER',
+  'Curaçao':                   'CUW',
+  'Netherlands':               'NED',
+  'Japan':                     'JPN',
+  'Sweden':                    'SWE',
+  'Tunisia':                   'TUN',
+  'Saudi Arabia':              'KSA',
+  'Uruguay':                   'URU',
+  'Spain':                     'ESP',
+  'Cabo Verde':                'CPV',
+  'IR Iran':                   'IRN',
+  'New Zealand':               'NZL',
+  'Belgium':                   'BEL',
+  'Egypt':                     'EGY',
+  'France':                    'FRA',
+  'Senegal':                   'SEN',
+  'Iraq':                      'IRQ',
+  'Norway':                    'NOR',
+  'Argentina':                 'ARG',
+  'Algeria':                   'ALG',
+  'Austria':                   'AUT',
+  'Jordan':                    'JOR',
+  'Ghana':                     'GHA',
+  'Panama':                    'PAN',
+  'England':                   'ENG',
+  'Croatia':                   'CRO',
+  'Portugal':                  'POR',
+  'Uzbekistan':                'UZB',
+  'Colombia':                  'COL',
+  'Congo DR':                  'COD',
+  // api-football alternates
+  'South Korea':               'KOR',
+  'Czech Republic':            'CZE',
+  'Turkey':                    'TUR',
+  'Iran':                      'IRN',
+  'DR Congo':                  'COD',
+  'Cape Verde':                'CPV',
+  'Ivory Coast':               'CIV',
+  "Cote d'Ivoire":             'CIV',
+  'Curacao':                   'CUW',
+  'Bosnia & Herzegovina':      'BIH',
+  'United States':             'USA',
+};
+
+/** Returns the 3-letter abbreviation for a known team, or the first 3 chars as fallback */
+export function getAbbr(teamName) {
+  if (!teamName) return '?';
+  return TEAM_ABBR[teamName] ?? teamName.slice(0, 3).toUpperCase();
+}
+
 /** Returns the flag emoji for a known team, or '' for placeholder/TBD entries */
 export function getFlag(teamName) {
   return TEAM_FLAGS[teamName] ?? '';

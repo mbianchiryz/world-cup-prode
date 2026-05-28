@@ -92,11 +92,11 @@ function Podium({ players, onSelect, showChampion }) {
         margin: '0 0 28px',
       }}>Top of the pool.</h2>
 
-      <div className="podium-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'flex-end' }}>
+      <div className="podium-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'flex-end' }}>
         {order.map((o) => {
           if (!o.p) return <div key={o.rank} />;
           return (
-            <div key={o.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div key={o.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
               <div
                 onClick={() => onSelect(o.p)}
                 className="podium-card"

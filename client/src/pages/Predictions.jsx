@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { getFlag } from '@/lib/matches-data';
+import { getFlag, getAbbr } from '@/lib/matches-data';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -241,10 +241,10 @@ function MatchCard({ match, pred, onSave }) {
         padding: '18px 20px',
       }}>
         {/* Home */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <span style={{ fontSize: 26, flexShrink: 0 }}>{getFlag(match.home_team)}</span>
-          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {match.home_team.toUpperCase()}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 30, lineHeight: 1 }}>{getFlag(match.home_team)}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink)' }}>
+            {isPlaceholder(match.home_team) ? match.home_team : getAbbr(match.home_team)}
           </span>
         </div>
 
@@ -256,10 +256,10 @@ function MatchCard({ match, pred, onSave }) {
         </div>
 
         {/* Away */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, justifyContent: 'flex-end', flexDirection: 'row-reverse' }}>
-          <span style={{ fontSize: 26, flexShrink: 0 }}>{getFlag(match.away_team)}</span>
-          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
-            {match.away_team.toUpperCase()}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 30, lineHeight: 1 }}>{getFlag(match.away_team)}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink)' }}>
+            {isPlaceholder(match.away_team) ? match.away_team : getAbbr(match.away_team)}
           </span>
         </div>
       </div>
