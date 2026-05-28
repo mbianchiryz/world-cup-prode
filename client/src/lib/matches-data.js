@@ -70,6 +70,46 @@ export const TEAM_FLAGS = {
   'United States':                          '🇺🇸',
 };
 
+// ── Team → Group reverse-lookup (covers official + api-football alternate names)
+export const TEAM_GROUP = {
+  // A
+  'Mexico': 'A', 'South Africa': 'A', 'Korea Republic': 'A', 'Czechia': 'A',
+  'South Korea': 'A', 'Czech Republic': 'A',
+  // B
+  'Canada': 'B', 'Bosnia and Herzegovina': 'B', 'Qatar': 'B', 'Switzerland': 'B',
+  'Bosnia & Herzegovina': 'B',
+  // C
+  'Haiti': 'C', 'Scotland': 'C', 'Brazil': 'C', 'Morocco': 'C',
+  // D
+  'USA': 'D', 'Paraguay': 'D', 'Australia': 'D', 'Türkiye': 'D',
+  'Turkey': 'D', 'United States': 'D',
+  // E
+  "Côte d'Ivoire": 'E', 'Ecuador': 'E', 'Germany': 'E', 'Curaçao': 'E',
+  "Cote d'Ivoire": 'E', 'Ivory Coast': 'E', 'Curacao': 'E',
+  // F
+  'Netherlands': 'F', 'Japan': 'F', 'Sweden': 'F', 'Tunisia': 'F',
+  // G
+  'IR Iran': 'G', 'New Zealand': 'G', 'Belgium': 'G', 'Egypt': 'G',
+  'Iran': 'G',
+  // H
+  'Saudi Arabia': 'H', 'Uruguay': 'H', 'Spain': 'H', 'Cabo Verde': 'H',
+  'Cape Verde': 'H',
+  // I
+  'France': 'I', 'Senegal': 'I', 'Iraq': 'I', 'Norway': 'I',
+  // J
+  'Argentina': 'J', 'Algeria': 'J', 'Austria': 'J', 'Jordan': 'J',
+  // K
+  'Portugal': 'K', 'Congo DR': 'K', 'Uzbekistan': 'K', 'Colombia': 'K',
+  'DR Congo': 'K',
+  // L
+  'Ghana': 'L', 'Panama': 'L', 'England': 'L', 'Croatia': 'L',
+};
+
+/** Derives the group letter (A-L) from a team name, handles api-football alternates */
+export function getTeamGroup(teamName) {
+  return TEAM_GROUP[teamName] ?? null;
+}
+
 // ── 3-letter abbreviation map ─────────────────────────────────────────────────
 export const TEAM_ABBR = {
   'Mexico':                    'MEX',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { getFlag, getAbbr } from '@/lib/matches-data';
+import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -1015,7 +1015,16 @@ export default function Predictions() {
         getMyPredictions(),
         getChampionData(),
       ]);
-      setMatches(ms);
+      // Derive group_name from team names when DB has it as null
+      // (api-football doesn't return group letters; seed-matches leaves it null)
+      const enriched = ms.map((m) => {
+        if (m.stage === 'group' && !m.group_name) {
+          const g = getTeamGroup(m.home_team) || getTeamGroup(m.away_team);
+          return g ? { ...m, group_name: g } : m;
+        }
+        return m;
+      });
+      setMatches(enriched);
       const map = {};
       for (const p of predictions) map[p.match_id] = p;
       setPreds(map);
