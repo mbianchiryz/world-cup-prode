@@ -22,6 +22,13 @@ function PageFallback() {
 export default function App() {
   const [user, setUser]     = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   useEffect(() => {
     // Get initial session (covers OAuth redirect-back)
@@ -54,9 +61,9 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', background: 'var(--bg)' }}>
       <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} />
-      <main className="main-pad" style={{ flex: 1, minWidth: 0, padding: '32px 36px', overflowX: 'hidden' }}>
+      <main className="main-pad" style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 16px 40px' : '32px 36px', overflowX: 'hidden' }}>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/"            element={<Home />} />

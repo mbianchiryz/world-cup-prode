@@ -179,9 +179,17 @@ export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
 
   // Close on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Track viewport width
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const sidebarStyle = {
     width: 240,
@@ -199,7 +207,7 @@ export default function Sidebar({ user, onLogout }) {
     <>
       {/* Mobile top bar */}
       <header style={{
-        display: 'none',
+        display: isMobile ? 'flex' : 'none',
         position: 'sticky',
         top: 0,
         zIndex: 30,
@@ -245,8 +253,8 @@ export default function Sidebar({ user, onLogout }) {
         </div>
       )}
 
-      {/* Desktop sidebar — hidden on mobile via index.css .desktop-sidebar rule */}
-      <aside style={sidebarStyle} className="desktop-sidebar">
+      {/* Desktop sidebar — hidden on mobile via JS isMobile state */}
+      <aside style={{ ...sidebarStyle, display: isMobile ? 'none' : 'flex' }} className="desktop-sidebar">
         <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
       </aside>
 
