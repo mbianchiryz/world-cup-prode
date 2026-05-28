@@ -188,6 +188,7 @@ export default function Sidebar({ user, onLogout }) {
     flexShrink: 0,
     background: 'var(--ink)',
     color: 'var(--bg)',
+    display: 'flex',
     flexDirection: 'column',
     height: '100vh',
     position: 'sticky',
@@ -244,8 +245,8 @@ export default function Sidebar({ user, onLogout }) {
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <aside style={sidebarStyle} className="hidden sm:flex">
+      {/* Desktop sidebar — hidden on mobile via index.css .desktop-sidebar rule */}
+      <aside style={sidebarStyle} className="desktop-sidebar">
         <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
       </aside>
 

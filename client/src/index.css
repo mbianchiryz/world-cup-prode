@@ -101,6 +101,9 @@ input[type='number'] { -moz-appearance: textfield; }
   /* Mobile top bar: override inline display:none */
   .mobile-header { display: flex !important; }
 
+  /* Desktop sidebar: hidden on mobile — !important overrides inline display:flex */
+  .desktop-sidebar { display: none !important; }
+
   /* App main content area */
   .main-pad { padding: 16px 16px 40px !important; }
 
