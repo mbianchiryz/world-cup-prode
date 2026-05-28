@@ -602,23 +602,66 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
 
   const filtered = useMemo(() => {
     let list = matches.filter((m) => m.stage === 'group');
-    if (md !== 'all') list = list.filter((m) => m.matchday === Number(md));
-    if (pendingOnly)  list = list.filter((m) => isPending(m, preds[m.id]));
+    if (md !== 'all' && md !== 'groups') list = list.filter((m) => m.matchday === Number(md));
+    if (pendingOnly) list = list.filter((m) => isPending(m, preds[m.id]));
+    if (md === 'groups') list = [...list].sort((a, b) =>
+      (a.group_name || '').localeCompare(b.group_name || '') ||
+      new Date(a.match_time) - new Date(b.match_time)
+    );
     return list;
   }, [matches, md, preds, pendingOnly]);
 
   const mdOptions = [
-    { value: 'all', label: 'All Matches' },
-    { value: '1',   label: 'Matchday 1'  },
-    { value: '2',   label: 'Matchday 2'  },
-    { value: '3',   label: 'Matchday 3'  },
+    { value: 'all',    label: 'All Matches' },
+    { value: '1',      label: 'Matchday 1'  },
+    { value: '2',      label: 'Matchday 2'  },
+    { value: '3',      label: 'Matchday 3'  },
+    { value: 'groups', label: 'Groups'      },
   ];
+
+  // Groups view: matches split into sections per group letter
+  const byGroup = useMemo(() => {
+    if (md !== 'groups') return null;
+    const map = {};
+    for (const m of filtered) {
+      const g = m.group_name || '?';
+      if (!map[g]) map[g] = [];
+      map[g].push(m);
+    }
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+  }, [md, filtered]);
 
   return (
     <div className="space-y-4">
       <PillBar options={mdOptions} value={md} onChange={setMd} />
       {filtered.length === 0 ? (
         <EmptyState pendingOnly={pendingOnly} />
+      ) : md === 'groups' ? (
+        <div className="space-y-6">
+          {(byGroup || []).map(([letter, groupMatches]) => (
+            <div key={letter} className="space-y-3">
+              {/* Group header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 26, height: 26,
+                  background: groupColor(letter),
+                  color: isYellowGroup(letter) ? 'var(--ink)' : '#fff',
+                  borderRadius: 6,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--display)', fontSize: 14, flexShrink: 0,
+                }}>{letter}</div>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--muted)' }}>
+                  GROUP {letter}
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {groupMatches.map((m) => (
+                  <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
