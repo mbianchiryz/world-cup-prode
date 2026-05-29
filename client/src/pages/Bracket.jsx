@@ -614,7 +614,7 @@ function BracketPlayerModal({ bracket, onClose }) {
 }
 
 // ── Landing / intro ───────────────────────────────────────────────────────────
-function Landing({ onStart, onViewAll, locked, hasPicks }) {
+function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
   const steps = [
     { n: 1, title: 'Rank each group', desc: 'Predict the final standings for all 12 groups.' },
     { n: 2, title: 'Pick best 3rds',  desc: 'Choose 8 of the 12 third-place teams to advance.' },
@@ -673,8 +673,8 @@ function Landing({ onStart, onViewAll, locked, hasPicks }) {
           </button>
         )}
 
-        {/* See all brackets — only after lock */}
-        {locked && (
+        {/* See all brackets — visible as soon as any locked bracket exists */}
+        {hasLockedBrackets && (
           <button
             onClick={onViewAll}
             style={{
@@ -828,7 +828,7 @@ export default function Bracket() {
             ← Overview
           </button>
         )}
-        {locked && view === 'landing' && allBrackets.length > 0 && (
+        {view === 'landing' && allBrackets.length > 0 && (
           <button onClick={() => setView('leaderboard')}
             style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 6 }}>
             All brackets ({allBrackets.length})
@@ -843,6 +843,7 @@ export default function Bracket() {
           onViewAll={() => setView('leaderboard')}
           locked={locked}
           hasPicks={hasPicks}
+          hasLockedBrackets={allBrackets.length > 0}
         />
       )}
 
