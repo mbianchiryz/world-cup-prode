@@ -98,17 +98,17 @@ input[type='number'] { -moz-appearance: textfield; }
 /* ─── Hero "26" decoration ───────────────────────────────────────────────── */
 .hero-26 {
   position: absolute;
-  right: -20px;
+  left: -24px;
+  right: auto;
   top: -44px;
   font-family: var(--display);
   font-size: clamp(300px, 36vw, 540px);
   line-height: 0.82;
   letter-spacing: -0.06em;
   color: var(--yellow);
-  opacity: 0.9;
+  opacity: 0.22;
   pointer-events: none;
   user-select: none;
-  /* keeps the circles sharp without antialiasing blur */
   -webkit-font-smoothing: antialiased;
 }
 
