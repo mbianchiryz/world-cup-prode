@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFlag } from '@/lib/matches-data';
 import { getMatches, getLeaderboard } from '@/lib/supabase-db';
@@ -81,6 +81,12 @@ const CITIES = [
 // ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero({ nextMatch, onNavigate }) {
   const cd = useCountdown(nextMatch?.match_time);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
 
   return (
     <div className="hero-pad" style={{
@@ -95,14 +101,14 @@ function Hero({ nextMatch, onNavigate }) {
       {/* Decorative 26 */}
       <div style={{
         position: 'absolute',
-        right: -30,
-        top: -50,
+        right: isMobile ? -8  : -30,
+        top:   isMobile ? -20 : -50,
         fontFamily: 'var(--display)',
-        fontSize: 480,
+        fontSize:   isMobile ? 200 : 480,
         lineHeight: 0.82,
         letterSpacing: '-0.06em',
         color: 'var(--yellow)',
-        opacity: 0.9,
+        opacity: isMobile ? 0.18 : 0.9,
         pointerEvents: 'none',
         userSelect: 'none',
       }}>26</div>
@@ -131,7 +137,7 @@ function Hero({ nextMatch, onNavigate }) {
             }}>
               PREDICT<br />EVERY<br />MATCH.
             </h1>
-            <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: '#C9C6BB', margin: 0 }}>
+            <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: '#C9C6BB', margin: 0, textShadow: isMobile ? '0 1px 6px rgba(0,0,0,0.95)' : 'none' }}>
               104 matches. 48 nations. One champion. Lock in your picks for the entire bracket — exact scores win.
             </p>
           </div>
