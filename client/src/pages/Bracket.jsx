@@ -3,9 +3,9 @@ import { getFlag, getAbbr, GROUPS } from '@/lib/matches-data';
 import { getBracketChallenge, saveBracketChallenge } from '@/lib/supabase-db';
 import {
   GROUPS_LIST, BRACKET_LOCK, isBracketLocked,
-  ROUND_LABELS, R32, BRACKET_TREE,
-  defaultGroupPicks, assignThirds, getMatchTeams, matchesForStage, matchDate,
-  groupsComplete, knockoutComplete, ALL_MATCH_IDS,
+  ROUND_LABELS, BRACKET_TREE,
+  defaultGroupPicks, assignThirds, getMatchTeams,
+  knockoutComplete, ALL_MATCH_IDS,
 } from '@/lib/bracket-data';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -242,152 +242,172 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, locked
   );
 }
 
-// ── Phase 3: Knockout bracket ─────────────────────────────────────────────────
-function TeamSlot({ team, picked, onClick, locked }) {
-  const canPick = team && !locked;
-  return (
-    <button
-      onClick={() => canPick && onClick && onClick(team)}
-      style={{
-        all: 'unset',
-        cursor: canPick && onClick ? 'pointer' : 'default',
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '9px 12px',
-        background: picked ? 'var(--ink)' : 'var(--bg)',
-        borderBottom: '1px solid var(--line)',
-        transition: 'background .1s',
-        opacity: team ? 1 : 0.4,
-        minHeight: 40,
-      }}
-      onMouseEnter={e => { if (canPick && onClick) e.currentTarget.style.background = picked ? 'var(--ink-2)' : 'var(--bg-2)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = picked ? 'var(--ink)' : 'var(--bg)'; }}
-    >
-      <span style={{ fontSize: 18, flexShrink: 0 }}>{team ? getFlag(team) : '·'}</span>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-        color: picked ? '#fff' : (team ? 'var(--ink)' : 'var(--muted)') }}>
-        {team ? getAbbr(team) : 'TBD'}
-      </span>
-      {picked && <span style={{ marginLeft: 'auto', color: 'var(--yellow)', fontSize: 14 }}>✓</span>}
-    </button>
-  );
-}
+// ── Phase 3: Bracket tree visualization ──────────────────────────────────────
+const SLOT   = 84;   // px per R32 slot (card + spacing)
+const CARD_H = 68;   // match card height
+const CARD_W = 152;  // match card width
+const COL_W  = 200;  // total col width (card + gap to next col)
+const GAP    = COL_W - CARD_W; // 48px gap between card right and next col left
 
-function MatchCard({ matchId, groupPicks, thirdAssignments, knockoutPicks, onPick, locked, stage }) {
-  const { home, away } = getMatchTeams(matchId, groupPicks, thirdAssignments, knockoutPicks);
-  const winner = knockoutPicks[matchId];
-  const date = matchDate(matchId);
-  const stageColor = { r32: 'var(--blue)', r16: 'var(--green)', qf: 'var(--orange)', sf: 'var(--pink)', final: 'var(--yellow)' }[stage] || 'var(--ink)';
+const ROUND_DEFS = [
+  { key: 'r32',   label: 'R32',     spm: 1,
+    ids: ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+          'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'] },
+  { key: 'r16',   label: 'R16',     spm: 2,
+    ids: ['r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8'] },
+  { key: 'qf',    label: 'QF',      spm: 4,  ids: ['qf_1','qf_2','qf_3','qf_4'] },
+  { key: 'sf',    label: 'SF',      spm: 8,  ids: ['sf_1','sf_2'] },
+  { key: 'final', label: 'FINAL',   spm: 16, ids: ['final'] },
+];
 
-  return (
-    <div style={{
-      border: `1.5px solid ${winner ? 'var(--ink)' : 'var(--line)'}`,
-      borderRadius: 'var(--r)',
-      overflow: 'hidden',
-      background: 'var(--bg)',
-    }}>
-      <div style={{ background: 'var(--bg-2)', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="label" style={{ color: stageColor, fontSize: 9 }}>{ROUND_LABELS[stage]?.toUpperCase()}</div>
-        {date && <div className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>{date}</div>}
-      </div>
-      <TeamSlot team={home} picked={winner === home} onClick={home && away ? () => onPick(matchId, home) : null} locked={locked} />
-      <TeamSlot team={away} picked={winner === away} onClick={home && away ? () => onPick(matchId, away) : null} locked={locked} />
-    </div>
-  );
-}
+function mCenter(matchIdx, spm) { return (matchIdx * spm + (spm - 1) / 2) * SLOT + SLOT / 2; }
+function mTop(matchIdx, spm)    { return (matchIdx * spm + (spm - 1) / 2) * SLOT + (SLOT - CARD_H) / 2; }
 
-function KnockoutPhase({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, onLock, locked, saving }) {
-  const [activeStage, setActiveStage] = useState('r32');
-  const thirdAssignments = useMemo(() => assignThirds(thirdPicks), [thirdPicks]);
-  const stages = ['r32','r16','qf','sf','final'];
-
-  // Determine which stages are unlocked (prior stage fully picked)
-  function isStageUnlocked(stage) {
-    if (stage === 'r32') return true;
-    const stageOrder = stages;
-    const prev = stageOrder[stageOrder.indexOf(stage) - 1];
-    const prevIds = matchesForStage(prev);
-    return prevIds.every(id => !!knockoutPicks[id]);
-  }
-
-  const stageIds = matchesForStage(activeStage);
+function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, onLock, locked, saving }) {
+  const ta = useMemo(() => assignThirds(thirdPicks), [thirdPicks]);
+  const TOTAL_H = 16 * SLOT;
+  const TOTAL_W = ROUND_DEFS.length * COL_W;
   const isComplete = knockoutComplete(knockoutPicks);
 
-  return (
-    <div>
-      {/* Stage tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
-        {stages.map(s => {
-          const unlocked = isStageUnlocked(s);
-          const done = matchesForStage(s).every(id => !!knockoutPicks[id]);
+  // SVG connector lines for every R16+ match
+  const connectors = useMemo(() => {
+    const lines = [];
+    ROUND_DEFS.slice(1).forEach(({ ids, spm }, rIdx) => {
+      const roundIdx = rIdx + 1;
+      const parentSpm = spm / 2;
+      const parentRoundIdx = roundIdx - 1;
+      const parentRX = parentRoundIdx * COL_W + CARD_W;
+      const midX = parentRX + GAP / 2;
+
+      ids.forEach((id, matchIdx) => {
+        const childCY  = mCenter(matchIdx, spm);
+        const childLX  = roundIdx * COL_W;
+        const parentAI = matchIdx * 2;
+        const parentBI = matchIdx * 2 + 1;
+        const pACY = mCenter(parentAI, parentSpm);
+        const pBCY = mCenter(parentBI, parentSpm);
+
+        const pAId   = ROUND_DEFS[parentRoundIdx].ids[parentAI];
+        const pBId   = ROUND_DEFS[parentRoundIdx].ids[parentBI];
+        const picked = knockoutPicks[pAId] || knockoutPicks[pBId];
+        const clr    = picked ? 'var(--ink-2)' : 'var(--line)';
+        const w      = 1.5;
+
+        lines.push(
+          <line key={`${id}-pa`} x1={parentRX} y1={pACY} x2={midX} y2={pACY} stroke={clr} strokeWidth={w} />,
+          <line key={`${id}-pb`} x1={parentRX} y1={pBCY} x2={midX} y2={pBCY} stroke={clr} strokeWidth={w} />,
+          <line key={`${id}-v`}  x1={midX} y1={pACY}  x2={midX} y2={pBCY}    stroke={clr} strokeWidth={w} />,
+          <line key={`${id}-ch`} x1={midX} y1={childCY} x2={childLX} y2={childCY} stroke={clr} strokeWidth={w} />,
+        );
+      });
+    });
+    return lines;
+  }, [knockoutPicks]);
+
+  // Single match card
+  function BracketMatch({ id, top, isFinal }) {
+    const { home, away } = getMatchTeams(id, groupPicks, ta, knockoutPicks);
+    const winner = knockoutPicks[id];
+    const canPick = home && away && !locked;
+    const rowH = Math.floor((CARD_H - 1) / 2);
+
+    return (
+      <div style={{
+        position: 'absolute', top, left: 0,
+        width: CARD_W, height: CARD_H,
+        border: `1.5px solid ${winner ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'var(--line)'}`,
+        borderRadius: 8, overflow: 'hidden',
+        background: isFinal ? 'var(--ink)' : 'var(--bg)',
+        zIndex: 1,
+      }}>
+        {[home, away].map((team, i) => {
+          const sel = winner === team;
           return (
-            <button
-              key={s}
-              onClick={() => unlocked && setActiveStage(s)}
-              disabled={!unlocked}
+            <button key={i}
+              onClick={() => canPick && onPick(id, team)}
               style={{
-                all: 'unset',
-                cursor: unlocked ? 'pointer' : 'default',
-                padding: '7px 14px',
-                borderRadius: 999,
-                fontWeight: 600, fontSize: 13,
-                background: activeStage === s ? 'var(--ink)' : done ? 'var(--bg-2)' : 'transparent',
-                color: activeStage === s ? '#fff' : unlocked ? 'var(--ink)' : 'var(--muted)',
-                border: `1.5px solid ${activeStage === s ? 'var(--ink)' : 'var(--line)'}`,
-                opacity: !unlocked ? 0.4 : 1,
-                display: 'flex', alignItems: 'center', gap: 6,
+                all: 'unset', cursor: canPick ? 'pointer' : 'default',
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '0 8px', height: rowH,
+                width: '100%', boxSizing: 'border-box',
+                background: sel ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'transparent',
+                borderBottom: i === 0 ? `1px solid ${isFinal ? 'var(--line-2)' : 'var(--line)'}` : 'none',
               }}
+              onMouseEnter={e => { if (canPick) e.currentTarget.style.background = sel ? (isFinal ? '#f5c000' : 'var(--ink-2)') : 'var(--bg-2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = sel ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'transparent'; }}
             >
-              {ROUND_LABELS[s]}
-              {done && <span style={{ fontSize: 10 }}>✓</span>}
+              <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{team ? getFlag(team) : ''}</span>
+              <span style={{
+                fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em',
+                color: sel ? (isFinal ? 'var(--ink)' : '#fff') : (team ? (isFinal ? 'var(--bg)' : 'var(--ink)') : 'var(--muted)'),
+              }}>
+                {team ? getAbbr(team) : 'TBD'}
+              </span>
+              {sel && <span style={{ marginLeft: 'auto', fontSize: 9, color: isFinal ? 'var(--ink)' : 'var(--yellow)' }}>✓</span>}
             </button>
           );
         })}
       </div>
+    );
+  }
 
-      {/* Matches grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-        {stageIds.map(id => (
-          <MatchCard
-            key={id}
-            matchId={id}
-            groupPicks={groupPicks}
-            thirdAssignments={thirdAssignments}
-            knockoutPicks={knockoutPicks}
-            onPick={onPick}
-            locked={locked}
-            stage={activeStage}
-          />
-        ))}
+  return (
+    <div>
+      {/* Round labels row */}
+      <div style={{ display: 'flex', marginBottom: 6 }}>
+        {ROUND_DEFS.map(({ key, label, ids }) => {
+          const done = ids.every(id => !!knockoutPicks[id]);
+          return (
+            <div key={key} style={{ width: COL_W, flexShrink: 0 }}>
+              <span className="label" style={{ fontSize: 9, color: done ? 'var(--green)' : 'var(--muted)' }}>
+                {label}{done ? ' ✓' : ''}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Progress hint */}
-      {!isStageUnlocked(stages[stages.indexOf(activeStage) + 1] || 'final') && !isComplete && (
-        <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-sm)',
-          color: 'var(--muted)', fontSize: 13 }}>
-          Complete all {ROUND_LABELS[activeStage]} picks to unlock the next round.
+      {/* Scrollable bracket */}
+      <div style={{ overflowX: 'auto', paddingBottom: 20 }}>
+        <div style={{ position: 'relative', width: TOTAL_W, height: TOTAL_H }}>
+          {/* Connector lines SVG — behind cards */}
+          <svg style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}
+            width={TOTAL_W} height={TOTAL_H}>
+            {connectors}
+          </svg>
+          {/* Match columns */}
+          {ROUND_DEFS.map(({ ids, spm }, roundIdx) => (
+            <div key={roundIdx}
+              style={{ position: 'absolute', left: roundIdx * COL_W, top: 0, width: CARD_W, height: TOTAL_H }}>
+              {ids.map((id, matchIdx) => (
+                <BracketMatch key={id} id={id} top={mTop(matchIdx, spm)} isFinal={id === 'final'} />
+              ))}
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 28, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      {/* Bottom actions */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={onBack}
           style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          ← Back
+          ← Back to 3rd picks
         </button>
-        {!locked && isComplete && (
-          <button
-            onClick={onLock}
-            disabled={saving}
+        {!locked && isComplete ? (
+          <button onClick={onLock} disabled={saving}
             style={{
               all: 'unset', cursor: saving ? 'default' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'var(--green)', color: '#fff',
               borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '12px 22px',
-            }}
-          >
+            }}>
             {saving ? 'Saving…' : '🔒 Lock in my bracket'}
           </button>
-        )}
+        ) : !locked ? (
+          <div className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>
+            Click a team to advance them → fill all rounds to lock
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -660,7 +680,7 @@ export default function Bracket() {
 
       {view === 'knockout' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 220px', gap: 32, alignItems: 'start' }}>
-          <KnockoutPhase
+          <BracketTree
             groupPicks={groupPicks}
             thirdPicks={thirdPicks}
             knockoutPicks={knockoutPicks}
