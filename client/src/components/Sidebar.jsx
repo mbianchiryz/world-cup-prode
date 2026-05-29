@@ -15,12 +15,26 @@ function IGrid(s = 18) {
 function IBars(s = 18) {
   return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="20" x2="5" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14"/></svg>;
 }
+function IBracket(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="2" y="4" width="6" height="4" rx="1"/>
+    <rect x="2" y="16" width="6" height="4" rx="1"/>
+    <rect x="9" y="10" width="6" height="4" rx="1"/>
+    <rect x="16" y="10" width="6" height="4" rx="1"/>
+    <line x1="8" y1="6" x2="9" y2="6"/>
+    <line x1="8.5" y1="6" x2="8.5" y2="12"/>
+    <line x1="8" y1="18" x2="9" y2="18"/>
+    <line x1="8.5" y1="18" x2="8.5" y2="12"/>
+    <line x1="15" y1="12" x2="16" y2="12"/>
+  </svg>;
+}
 
 const LINKS = [
-  { href: '/',            label: 'Home',        icon: IHome,   color: 'var(--ink)'   },
-  { href: '/predictions', label: 'Predictions', icon: ITarget, color: 'var(--red)'   },
-  { href: '/groups',      label: 'Groups',      icon: IGrid,   color: 'var(--blue)'  },
-  { href: '/leaderboard', label: 'Standings',   icon: IBars,   color: 'var(--green)' },
+  { href: '/',            label: 'Home',      icon: IHome,    color: 'var(--ink)'    },
+  { href: '/predictions', label: 'Picks',     icon: ITarget,  color: 'var(--red)'    },
+  { href: '/bracket',     label: 'Bracket',   icon: IBracket, color: 'var(--yellow)' },
+  { href: '/groups',      label: 'Groups',    icon: IGrid,    color: 'var(--blue)'   },
+  { href: '/leaderboard', label: 'Standings', icon: IBars,    color: 'var(--green)'  },
 ];
 
 function NavLink({ link, active, onClick }) {

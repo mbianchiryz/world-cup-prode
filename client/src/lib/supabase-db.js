@@ -314,6 +314,52 @@ export async function getUserPicks(userId) {
   return { user: { id: profile.id, name: userName }, picks };
 }
 
+// ── Bracket Challenge ─────────────────────────────────────────────────────────
+export async function getBracketChallenge() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from('bracket_challenges')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  return data;
+}
+
+export async function saveBracketChallenge(updates) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { data, error } = await supabase
+    .from('bracket_challenges')
+    .upsert({ user_id: user.id, ...updates }, { onConflict: 'user_id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getBracketLeaderboard() {
+  // Fetch all bracket challenges + user profiles
+  const [{ data: brackets }, { data: profiles }] = await Promise.all([
+    supabase.from('bracket_challenges').select('user_id, group_picks, third_place_picks, knockout_picks, phase, locked'),
+    supabase.from('profiles').select('id, name, email'),
+  ]);
+
+  if (!brackets?.length) return [];
+  const profileMap = {};
+  for (const p of (profiles || [])) profileMap[p.id] = p;
+
+  return brackets.map(b => ({
+    userId:          b.user_id,
+    name:            profileMap[b.user_id]?.name || profileMap[b.user_id]?.email?.split('@')[0] || 'Player',
+    phase:           b.phase,
+    locked:          b.locked,
+    groupPicks:      b.group_picks || {},
+    thirdPicks:      b.third_place_picks || [],
+    knockoutPicks:   b.knockout_picks || {},
+  }));
+}
+
 // ── Match meta: predictions + H2H from api-football ──────────────────────────
 export async function getMatchMeta(fixtureIds) {
   if (!fixtureIds || !fixtureIds.length) return {};

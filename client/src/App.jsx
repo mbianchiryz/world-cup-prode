@@ -10,6 +10,7 @@ const Home        = lazy(() => import('@/pages/Home'));
 const Predictions = lazy(() => import('@/pages/Predictions'));
 const Groups      = lazy(() => import('@/pages/Groups'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const Bracket     = lazy(() => import('@/pages/Bracket'));
 
 function PageFallback() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/groups"      element={<Groups />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/bracket"     element={<Bracket />} />
             <Route path="*"            element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
