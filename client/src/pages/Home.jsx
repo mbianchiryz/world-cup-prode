@@ -81,12 +81,6 @@ const CITIES = [
 // ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero({ nextMatch, onNavigate }) {
   const cd = useCountdown(nextMatch?.match_time);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
-  useEffect(() => {
-    const h = () => setIsMobile(window.innerWidth < 640);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, []);
 
   return (
     <div className="hero-pad" style={{
@@ -98,20 +92,8 @@ function Hero({ nextMatch, onNavigate }) {
       overflow: 'hidden',
       minHeight: 340,
     }}>
-      {/* Decorative 26 */}
-      <div style={{
-        position: 'absolute',
-        right: isMobile ? -8  : -30,
-        top:   isMobile ? -20 : -50,
-        fontFamily: 'var(--display)',
-        fontSize:   isMobile ? 200 : 480,
-        lineHeight: 0.82,
-        letterSpacing: '-0.06em',
-        color: 'var(--yellow)',
-        opacity: isMobile ? 0.18 : 0.9,
-        pointerEvents: 'none',
-        userSelect: 'none',
-      }}>26</div>
+      {/* Decorative 26 — sized/positioned via CSS (.hero-26) */}
+      <div className="hero-26">26</div>
 
       <div className="mob-1col" style={{
         position: 'relative',

@@ -95,6 +95,23 @@ input[type='number'] { -moz-appearance: textfield; }
   100% { box-shadow: 0 0 0 0 rgba(0, 184, 82, 0); }
 }
 
+/* ─── Hero "26" decoration ───────────────────────────────────────────────── */
+.hero-26 {
+  position: absolute;
+  right: -20px;
+  top: -44px;
+  font-family: var(--display);
+  font-size: clamp(300px, 36vw, 540px);
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  color: var(--yellow);
+  opacity: 0.9;
+  pointer-events: none;
+  user-select: none;
+  /* keeps the circles sharp without antialiasing blur */
+  -webkit-font-smoothing: antialiased;
+}
+
 /* ─── Mobile responsive (< 640 px) ──────────────────────────────────────── */
 @media (max-width: 639px) {
 
@@ -116,6 +133,14 @@ input[type='number'] { -moz-appearance: textfield; }
 
   /* Hero block padding */
   .hero-pad { padding: 26px 20px 28px !important; min-height: auto !important; }
+
+  /* Hero "26" — subtle on mobile */
+  .hero-26 {
+    font-size: 190px !important;
+    opacity: 0.15 !important;
+    right: -6px !important;
+    top: -18px !important;
+  }
 
   /* Generic grid stacking */
   .mob-1col { grid-template-columns: 1fr !important; }
