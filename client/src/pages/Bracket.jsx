@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getFlag, getAbbr, GROUPS } from '@/lib/matches-data';
-import { getBracketChallenge, saveBracketChallenge } from '@/lib/supabase-db';
+import { getBracketChallenge, saveBracketChallenge, getBracketLeaderboard } from '@/lib/supabase-db';
 import {
   GROUPS_LIST, BRACKET_LOCK, isBracketLocked,
   ROUND_LABELS, BRACKET_TREE,
@@ -450,8 +450,171 @@ function GroupSummary({ groupPicks, onEdit, locked }) {
   );
 }
 
+// ── Bracket Leaderboard ───────────────────────────────────────────────────────
+function BracketLeaderboard({ brackets, onSelect, currentUserId }) {
+  const sorted = [...brackets].sort((a, b) => {
+    // locked+complete first, then by name
+    const aScore = (a.locked ? 2 : 0) + (a.phase === 'complete' ? 1 : 0);
+    const bScore = (b.locked ? 2 : 0) + (b.phase === 'complete' ? 1 : 0);
+    if (bScore !== aScore) return bScore - aScore;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (!sorted.length) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        No brackets submitted yet.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {sorted.map((b, i) => {
+        const champion = b.knockoutPicks?.['final'];
+        const isMe = b.userId === currentUserId;
+        const isComplete = b.phase === 'complete' || b.locked;
+        return (
+          <button
+            key={b.userId}
+            onClick={() => onSelect(b)}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'grid', gridTemplateColumns: '32px 1fr auto auto',
+              alignItems: 'center', gap: 12,
+              padding: '14px 16px',
+              background: isMe ? 'var(--ink)' : 'var(--bg)',
+              border: `1.5px solid ${isMe ? 'var(--ink)' : 'var(--line)'}`,
+              borderRadius: 'var(--r)',
+              transition: 'background .1s',
+            }}
+            onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = 'var(--bg-2)'; }}
+            onMouseLeave={e => { if (!isMe) e.currentTarget.style.background = 'var(--bg)'; }}
+          >
+            {/* Rank */}
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: i === 0 ? 'var(--yellow)' : i === 1 ? 'var(--blue)' : i === 2 ? 'var(--red)' : 'var(--bg-2)',
+              color: i === 0 ? 'var(--ink)' : i < 3 ? '#fff' : 'var(--muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--display)', fontSize: 14, flexShrink: 0,
+            }}>{i + 1}</div>
+            {/* Name */}
+            <div>
+              <div style={{
+                fontWeight: 700, fontSize: 14,
+                color: isMe ? 'var(--bg)' : 'var(--ink)',
+              }}>
+                {b.name}{isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9, opacity: 0.6 }}>YOU</span>}
+              </div>
+              <div className="label" style={{ color: isMe ? '#8B8B90' : 'var(--muted)', fontSize: 9, marginTop: 2 }}>
+                {isComplete ? '✓ Complete' : 'In progress'}
+              </div>
+            </div>
+            {/* Champion */}
+            {champion ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 22 }}>{getFlag(champion)}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                  color: isMe ? 'var(--yellow)' : 'var(--ink)' }}>{getAbbr(champion)}</span>
+              </div>
+            ) : (
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>–</div>
+            )}
+            {/* Arrow */}
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={isMe ? '#8B8B90' : 'var(--muted)'} strokeWidth="2">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+            </svg>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Bracket Player Modal (read-only view of any player's bracket) ─────────────
+function BracketPlayerModal({ bracket, onClose }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const champion = bracket.knockoutPicks?.['final'];
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,10,15,0.65)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        background: 'var(--bg)', width: '100%', flex: 1,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        maxWidth: 1200, margin: '0 auto', marginTop: 40, borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'var(--ink)', padding: '20px 28px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          borderRadius: 'var(--r-xl) var(--r-xl) 0 0', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 999, background: 'var(--pink)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--display)', fontSize: 16, color: '#fff', flexShrink: 0,
+            }}>{(bracket.name?.[0] || '?').toUpperCase()}</div>
+            <div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 24, letterSpacing: '-0.03em', color: 'var(--bg)' }}>
+                {bracket.name}
+              </div>
+              <div className="label" style={{ color: '#8B8B90', marginTop: 2 }}>BRACKET CHALLENGE</div>
+            </div>
+            {champion && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8,
+                background: 'var(--yellow)', borderRadius: 8, padding: '6px 12px' }}>
+                <span style={{ fontSize: 22 }}>{getFlag(champion)}</span>
+                <div>
+                  <div className="label" style={{ fontSize: 8, color: 'var(--ink)' }}>CHAMPION</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>
+                    {getAbbr(champion)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} style={{
+            all: 'unset', cursor: 'pointer', width: 34, height: 34, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#8B8B90', border: '1px solid var(--line-2)', borderRadius: 999,
+          }}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Bracket view — read-only */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+          <BracketTree
+            groupPicks={bracket.groupPicks}
+            thirdPicks={bracket.thirdPicks}
+            knockoutPicks={bracket.knockoutPicks}
+            onPick={() => {}}
+            onBack={() => {}}
+            onLock={() => {}}
+            locked={true}
+            saving={false}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Landing / intro ───────────────────────────────────────────────────────────
-function Landing({ onStart, locked, hasPicks }) {
+function Landing({ onStart, onViewAll, locked, hasPicks }) {
   const steps = [
     { n: 1, title: 'Rank each group', desc: 'Predict the final standings for all 12 groups.' },
     { n: 2, title: 'Pick best 3rds',  desc: 'Choose 8 of the 12 third-place teams to advance.' },
@@ -468,38 +631,63 @@ function Landing({ onStart, locked, hasPicks }) {
         <p style={{ color: '#C9C6BB', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
           Lock in all your picks before Jun 11. Score points for every group ranking, 3rd-place qualifier, and knockout winner you get right.
         </p>
-        <div className="label" style={{ marginTop: 14, color: '#8B8B90' }}>
-          🔒 LOCKS {LOCK_DATE_STR}
+        <div className="label" style={{ marginTop: 14, color: locked ? 'var(--orange)' : '#8B8B90' }}>
+          {locked ? '🔒 BRACKET LOCKED · WORLD CUP HAS STARTED' : `🔒 LOCKS ${LOCK_DATE_STR}`}
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-        {steps.map(s => (
-          <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 16px',
-            background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--ink)', color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              fontFamily: 'var(--display)', fontSize: 14 }}>{s.n}</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>{s.title}</div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{s.desc}</div>
+      {!locked && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          {steps.map(s => (
+            <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 16px',
+              background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--ink)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                fontFamily: 'var(--display)', fontSize: 14 }}>{s.n}</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{s.title}</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{s.desc}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <button
-        onClick={onStart}
-        disabled={locked && !hasPicks}
-        style={{
-          all: 'unset', cursor: 'pointer', width: '100%', boxSizing: 'border-box',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: locked ? 'var(--muted)' : 'var(--ink)',
-          color: '#fff', borderRadius: 'var(--r)', fontWeight: 700, fontSize: 15, padding: '16px',
-        }}
-      >
-        {locked ? (hasPicks ? '🔒 View my locked bracket' : '🔒 Bracket locked') : (hasPicks ? 'Continue my bracket →' : 'Start bracket challenge →')}
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* My bracket button */}
+        {(hasPicks || !locked) && (
+          <button
+            onClick={onStart}
+            disabled={locked && !hasPicks}
+            style={{
+              all: 'unset', cursor: locked && !hasPicks ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: locked && !hasPicks ? 'var(--line)' : 'var(--ink)',
+              color: locked && !hasPicks ? 'var(--muted)' : '#fff',
+              borderRadius: 'var(--r)', fontWeight: 700, fontSize: 15, padding: '16px',
+            }}
+          >
+            {locked
+              ? (hasPicks ? '→ View my locked bracket' : '🔒 You didn\'t submit a bracket')
+              : (hasPicks ? 'Continue my bracket →' : 'Start bracket challenge →')}
+          </button>
+        )}
+
+        {/* See all brackets — only after lock */}
+        {locked && (
+          <button
+            onClick={onViewAll}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: 'var(--yellow)', color: 'var(--ink)',
+              borderRadius: 'var(--r)', fontWeight: 700, fontSize: 15, padding: '16px',
+            }}
+          >
+            🏆 See everyone's bracket
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -516,20 +704,26 @@ export default function Bracket() {
   const [phase, setPhase]             = useState('groups');
   const [hasPicks, setHasPicks]       = useState(false);
   const [saving, setSaving]           = useState(false);
+  const [allBrackets, setAllBrackets] = useState([]);
+  const [selectedBracket, setSelected] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  // Load from DB
+  // Load own bracket + leaderboard
   useEffect(() => {
     getBracketChallenge().then(data => {
       if (!data) return;
+      if (data.user_id) setCurrentUserId(data.user_id);
       if (data.group_picks && Object.keys(data.group_picks).length)  setGroupPicks(data.group_picks);
       if (data.third_place_picks?.length)  setThirdPicks(data.third_place_picks);
       if (data.knockout_picks && Object.keys(data.knockout_picks).length) setKnockout(data.knockout_picks);
       setPhase(data.phase || 'groups');
       setHasPicks(true);
-      // Restore view to appropriate phase
       if (data.phase === 'knockout' || data.phase === 'complete') setView('knockout');
       else if (data.phase === 'thirds') setView('thirds');
     }).catch(() => {});
+
+    // Always load the leaderboard (shows after lock date)
+    getBracketLeaderboard().then(setAllBrackets).catch(() => {});
   }, []);
 
   const persist = useCallback(async (updates) => {
@@ -634,15 +828,35 @@ export default function Bracket() {
             ← Overview
           </button>
         )}
+        {locked && view === 'landing' && allBrackets.length > 0 && (
+          <button onClick={() => setView('leaderboard')}
+            style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            All brackets ({allBrackets.length})
+          </button>
+        )}
         {saving && <div className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>Saving…</div>}
       </div>
 
       {view === 'landing' && (
         <Landing
           onStart={() => setView(phase === 'knockout' || phase === 'complete' ? 'knockout' : phase === 'thirds' ? 'thirds' : 'groups')}
+          onViewAll={() => setView('leaderboard')}
           locked={locked}
           hasPicks={hasPicks}
         />
+      )}
+
+      {view === 'leaderboard' && (
+        <div style={{ maxWidth: 600, margin: '0 auto' }}>
+          <div className="label" style={{ color: 'var(--muted)', marginBottom: 12 }}>
+            {allBrackets.length} BRACKET{allBrackets.length !== 1 ? 'S' : ''} SUBMITTED
+          </div>
+          <BracketLeaderboard
+            brackets={allBrackets}
+            onSelect={setSelected}
+            currentUserId={currentUserId}
+          />
+        </div>
       )}
 
       {view === 'groups' && (
@@ -724,6 +938,14 @@ export default function Bracket() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Player bracket modal */}
+      {selectedBracket && (
+        <BracketPlayerModal
+          bracket={selectedBracket}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
