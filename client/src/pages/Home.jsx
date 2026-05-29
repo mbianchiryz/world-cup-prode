@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFlag } from '@/lib/matches-data';
 import { getMatches, getLeaderboard } from '@/lib/supabase-db';
@@ -119,7 +119,7 @@ function Hero({ nextMatch, onNavigate }) {
             }}>
               PREDICT<br />EVERY<br />MATCH.
             </h1>
-            <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: '#C9C6BB', margin: 0, textShadow: isMobile ? '0 1px 6px rgba(0,0,0,0.95)' : 'none' }}>
+            <p style={{ maxWidth: 360, fontSize: 15, lineHeight: 1.55, color: '#C9C6BB', margin: 0, textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}>
               104 matches. 48 nations. One champion. Lock in your picks for the entire bracket — exact scores win.
             </p>
           </div>
