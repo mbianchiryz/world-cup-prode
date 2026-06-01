@@ -189,3 +189,63 @@ export function groupsComplete(groupPicks) {
 export function knockoutComplete(knockoutPicks) {
   return ALL_MATCH_IDS.every(id => !!knockoutPicks[id]);
 }
+
+// ── Scoring system ────────────────────────────────────────────────────────────
+
+// Points per knockout round
+export const KNOCKOUT_PTS = { r32: 1, r16: 2, qf: 4, sf: 8, final: 16, champion: 32 };
+
+/**
+ * Calculate bracket score given user picks and actual results.
+ * actual = {
+ *   groupStandings: { A: ['Mexico',...], B: [...], ... },  // actual final standings
+ *   thirdQualifiers: ['Norway', 'Algeria', ...],           // 8 actual best 3rds
+ *   knockoutResults: { r32_1: 'Germany', r16_1: 'France', ..., final: 'Argentina' }
+ * }
+ * Returns { total, breakdown: { groups, thirds, knockout } }
+ */
+export function calcBracketScore(userBracket, actual) {
+  if (!actual) return { total: 0, breakdown: { groups: 0, thirds: 0, knockout: 0 } };
+
+  let groups = 0, thirds = 0, knockout = 0;
+
+  // Groups: +1 per correct position, +2 bonus if full group correct
+  for (const g of GROUPS_LIST) {
+    const user = userBracket.groupPicks[g] || [];
+    const real = actual.groupStandings[g] || [];
+    let correct = 0;
+    for (let i = 0; i < 4; i++) {
+      if (user[i] && user[i] === real[i]) correct++;
+    }
+    groups += correct;
+    if (correct === 4) groups += 2;
+  }
+
+  // 3rds: +1 per correct qualifier, +1 if correct rank
+  const realThirds = actual.thirdQualifiers || [];
+  const userThirds = userBracket.thirdPicks || [];
+  for (let i = 0; i < userThirds.length; i++) {
+    const team = userThirds[i];
+    if (realThirds.includes(team)) {
+      thirds += 1; // correct qualifier
+      if (realThirds[i] === team) thirds += 1; // correct rank
+    }
+  }
+
+  // Knockout: per round points
+  for (const id of ALL_MATCH_IDS) {
+    const stage = matchIdToStage(id);
+    const pts = KNOCKOUT_PTS[stage] || 0;
+    if (userBracket.knockoutPicks[id] && actual.knockoutResults[id] &&
+        userBracket.knockoutPicks[id] === actual.knockoutResults[id]) {
+      knockout += pts;
+    }
+  }
+  // Champion bonus
+  if (userBracket.knockoutPicks['final'] && actual.knockoutResults['final'] &&
+      userBracket.knockoutPicks['final'] === actual.knockoutResults['final']) {
+    knockout += KNOCKOUT_PTS.champion;
+  }
+
+  return { total: groups + thirds + knockout, breakdown: { groups, thirds, knockout } };
+}

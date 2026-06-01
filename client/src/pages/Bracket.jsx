@@ -136,11 +136,19 @@ function GroupRanker({ groupLetter, ranking, onChange, onNext, onPrev, groupInde
 }
 
 // ── Phase 2: Third-place picker ───────────────────────────────────────────────
-function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, locked }) {
+function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, onReorder, locked }) {
   const thirds = GROUPS_LIST.map(g => ({
     group: g,
     team: (groupPicks[g] || [])[2] || '?',
   }));
+
+  function moveRank(idx, dir) {
+    const arr = [...selected];
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= arr.length) return;
+    [arr[idx], arr[swapIdx]] = [arr[swapIdx], arr[idx]];
+    onReorder(arr);
+  }
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -211,6 +219,58 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, locked
         })}
       </div>
 
+      {/* Ranking section */}
+      {selected.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span className="label" style={{ color: 'var(--muted)' }}>RANKING · BEST TO WORST</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
+              Order matters: +1 extra point for correct rank position
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {selected.map((team, idx) => (
+              <div key={team} style={{
+                display: 'grid', gridTemplateColumns: '28px 1fr auto',
+                alignItems: 'center', gap: 12,
+                height: 44,
+                background: 'var(--bg)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r-sm)',
+                padding: '0 12px',
+              }}>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.04em', color: 'var(--muted)' }}>
+                  {idx + 1}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>{getFlag(team)}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{team}</span>
+                </div>
+                {!locked && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <button
+                      onClick={() => moveRank(idx, -1)}
+                      disabled={idx === 0}
+                      style={{ all: 'unset', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.25 : 1,
+                        width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'var(--bg-2)', borderRadius: 5 }}
+                    ><IUp /></button>
+                    <button
+                      onClick={() => moveRank(idx, 1)}
+                      disabled={idx === selected.length - 1}
+                      style={{ all: 'unset', cursor: idx === selected.length - 1 ? 'default' : 'pointer',
+                        opacity: idx === selected.length - 1 ? 0.25 : 1,
+                        width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'var(--bg-2)', borderRadius: 5 }}
+                    ><IDown /></button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'space-between' }}>
         <button onClick={onBack}
           style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -235,7 +295,6 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, locked
 // ── Phase 3: Bracket tree visualization ──────────────────────────────────────
 const SLOT    = 84;   // px per R32 slot (card + spacing)
 const CARD_H  = 68;   // regular match card height
-const FINAL_H = 108;  // Final card: 33 + 1 + 40 (score row) + 1 + 33
 const CARD_W  = 152;  // match card width
 const COL_W   = 200;  // total col width (card + gap to next col)
 const GAP     = COL_W - CARD_W; // 48px gap between card right and next col left
@@ -316,15 +375,13 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
     const { home, away } = getMatchTeams(id, groupPicks, ta, knockoutPicks);
     const winner = knockoutPicks[id];
     const canPick = home && away && !locked;
-    const cardH   = isFinal ? FINAL_H : CARD_H;
-    // For Final: 33px per team row + 40px score row; for others: split evenly
-    const teamRowH = isFinal ? 33 : Math.floor((CARD_H - 1) / 2);
+    const teamRowH = Math.floor((CARD_H - 1) / 2);
     const canScore = isFinal && !!home && !!away && !locked;
 
     return (
       <div style={{
         position: 'absolute', top, left: 0,
-        width: CARD_W, height: cardH,
+        width: CARD_W, height: CARD_H,
         border: `1.5px solid ${winner ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'var(--line)'}`,
         borderRadius: 8, overflow: 'hidden',
         background: isFinal ? 'var(--ink)' : 'var(--bg)',
@@ -332,6 +389,10 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
       }}>
         {[home, away].map((team, i) => {
           const sel = winner === team;
+          const scoreVal = i === 0 ? fh : fa;
+          const handleChange = i === 0
+            ? e => handleScoreChange(true, e.target.value)
+            : e => handleScoreChange(false, e.target.value);
           return (
             <button key={i}
               onClick={() => canPick && onPick(id, team)}
@@ -350,57 +411,35 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
               <span style={{
                 fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em',
                 color: sel ? (isFinal ? 'var(--ink)' : '#fff') : (team ? (isFinal ? 'var(--bg)' : 'var(--ink)') : 'var(--muted)'),
+                flex: 1,
               }}>
                 {team ? getAbbr(team) : 'TBD'}
               </span>
-              {sel && <span style={{ marginLeft: 'auto', fontSize: 9, color: isFinal ? 'var(--ink)' : 'var(--yellow)' }}>✓</span>}
+              {!isFinal && sel && <span style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--yellow)' }}>✓</span>}
+              {isFinal && (
+                <input
+                  type="number" min="0" max="20"
+                  value={scoreVal}
+                  onChange={handleChange}
+                  onClick={e => e.stopPropagation()}
+                  onBlur={handleScoreBlur}
+                  disabled={!canScore || locked}
+                  placeholder="–"
+                  style={{
+                    width: 32, height: 26, textAlign: 'center',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--line)',
+                    borderRadius: 5,
+                    fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
+                    color: 'var(--ink)',
+                    outline: 'none',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
             </button>
           );
         })}
-
-        {/* Score row — Final only */}
-        {isFinal && (
-          <div style={{
-            height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            borderTop: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.06)',
-          }}>
-            <input
-              type="number" min="0" max="20"
-              value={fh}
-              onChange={e => handleScoreChange(true, e.target.value)}
-              onBlur={handleScoreBlur}
-              disabled={!canScore}
-              placeholder="–"
-              style={{
-                width: 34, height: 26, textAlign: 'center',
-                background: canScore ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
-                border: `1px solid ${canScore ? 'var(--line)' : 'var(--line-2)'}`,
-                borderRadius: 5,
-                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
-                color: canScore ? 'var(--ink)' : '#8B8B90',
-                outline: 'none',
-              }}
-            />
-            <span style={{ color: '#8B8B90', fontFamily: 'var(--mono)', fontSize: 11 }}>–</span>
-            <input
-              type="number" min="0" max="20"
-              value={fa}
-              onChange={e => handleScoreChange(false, e.target.value)}
-              onBlur={handleScoreBlur}
-              disabled={!canScore}
-              placeholder="–"
-              style={{
-                width: 34, height: 26, textAlign: 'center',
-                background: canScore ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
-                border: `1px solid ${canScore ? 'var(--line)' : 'var(--line-2)'}`,
-                borderRadius: 5,
-                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
-                color: canScore ? 'var(--ink)' : '#8B8B90',
-                outline: 'none',
-              }}
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -435,7 +474,7 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
               style={{ position: 'absolute', left: roundIdx * COL_W, top: 0, width: CARD_W, height: TOTAL_H }}>
               {ids.map((id, matchIdx) => (
                 <BracketMatch key={id} id={id}
-                  top={mTop(matchIdx, spm, id === 'final' ? FINAL_H : CARD_H)}
+                  top={mTop(matchIdx, spm)}
                   isFinal={id === 'final'} />
               ))}
             </div>
@@ -826,6 +865,11 @@ export default function Bracket() {
     persist(next);
   }
 
+  function reorderThirds(newArray) {
+    setThirdPicks(newArray);
+    persist({ third_place_picks: newArray });
+  }
+
   // ── Knockout pick handler
   function handlePick(matchId, team) {
     if (locked) return;
@@ -952,6 +996,7 @@ export default function Bracket() {
           onToggle={toggleThird}
           onFinish={saveThirdsAndContinue}
           onBack={() => setView('groups')}
+          onReorder={reorderThirds}
           locked={locked}
         />
       )}

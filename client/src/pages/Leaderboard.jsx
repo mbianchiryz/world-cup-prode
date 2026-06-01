@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getFlag } from '@/lib/matches-data';
-import { getLeaderboard, getUserPicks } from '@/lib/supabase-db';
+import { getFlag, getAbbr } from '@/lib/matches-data';
+import { getLeaderboard, getUserPicks, getBracketLeaderboard } from '@/lib/supabase-db';
+import { supabase } from '@/lib/supabase';
 
 const CLOSE = (
   <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -471,15 +472,99 @@ function PickRow({ pick, last }) {
   );
 }
 
+// ── Bracket tab table ─────────────────────────────────────────────────────────
+function BracketTable({ brackets, currentUserId }) {
+  const sorted = [...brackets].sort((a, b) => {
+    const aComplete = a.locked || a.phase === 'complete' ? 1 : 0;
+    const bComplete = b.locked || b.phase === 'complete' ? 1 : 0;
+    if (bComplete !== aComplete) return bComplete - aComplete;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (!sorted.length) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+        No brackets submitted yet.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
+        gap: 8, padding: '10px 16px',
+        background: 'var(--ink)', color: 'var(--bg)',
+      }} className="label">
+        <div>PLAYER</div>
+        <div style={{ textAlign: 'center' }}>CHAMPION</div>
+        <div style={{ textAlign: 'center' }}>STATUS</div>
+        <div style={{ textAlign: 'right' }}>SCORE</div>
+      </div>
+      {/* Rows */}
+      {sorted.map(b => {
+        const isMe = b.userId === currentUserId;
+        const isComplete = b.locked || b.phase === 'complete';
+        const champion = b.knockoutPicks?.['final'];
+        return (
+          <div key={b.userId} style={{
+            display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
+            gap: 8, padding: '12px 16px', alignItems: 'center',
+            borderBottom: '1px solid var(--line)',
+            background: isMe ? 'var(--ink)' : 'transparent',
+          }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: isMe ? 'var(--bg)' : 'var(--ink)' }}>
+              {b.name}
+              {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9, opacity: 0.6 }}>YOU</span>}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {champion ? (
+                <>
+                  <span style={{ fontSize: 18 }}>{getFlag(champion)}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
+                    color: isMe ? 'var(--yellow)' : 'var(--ink)' }}>{getAbbr(champion)}</span>
+                </>
+              ) : (
+                <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11 }}>–</span>
+              )}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {isComplete ? (
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
+                  color: 'var(--green)' }}>Complete ✓</span>
+              ) : (
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10,
+                  color: isMe ? '#8B8B90' : 'var(--muted)' }}>In progress</span>
+              )}
+            </div>
+            <div style={{ textAlign: 'right', fontFamily: 'var(--display)', fontSize: 20,
+              letterSpacing: '-0.03em', color: isMe ? 'var(--bg)' : 'var(--muted)' }}>
+              0
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main Leaderboard ──────────────────────────────────────────────────────────
 export default function Leaderboard() {
   const [data, setData]               = useState({ standings: [], champion: null });
   const [loading, setLoading]         = useState(true);
   const [selectedPlayer, setSelected] = useState(null);
+  const [bracketData, setBracketData] = useState([]);
+  const [activeTab, setActiveTab]     = useState('prode');
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     getLeaderboard().then(setData).finally(() => setLoading(false));
     const i = setInterval(() => getLeaderboard().then(setData).catch(() => {}), 60_000);
+    getBracketLeaderboard().then(setBracketData).catch(() => {});
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    }).catch(() => {});
     return () => clearInterval(i);
   }, []);
 
@@ -498,39 +583,83 @@ export default function Leaderboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {[
+          { key: 'prode', label: 'Prode' },
+          { key: 'bracket', label: 'Bracket Challenge' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              padding: '8px 18px',
+              borderRadius: 999,
+              fontWeight: 700, fontSize: 13,
+              background: activeTab === key ? 'var(--ink)' : 'transparent',
+              color: activeTab === key ? '#fff' : 'var(--muted)',
+              border: `1.5px solid ${activeTab === key ? 'var(--ink)' : 'var(--line)'}`,
+              transition: 'all .12s',
+            }}
+          >{label}</button>
+        ))}
+      </div>
+
       {/* Section header */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16,
         borderBottom: '1px solid var(--line)', paddingBottom: 14, marginBottom: 4,
       }}>
         <div>
-          <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
-            POOL STANDINGS · {standings.length} PLAYERS · SEASON 2026
-            {data.champion && (
-              <span style={{ marginLeft: 10, color: 'var(--green)' }}>
-                ● CHAMPION: {data.champion.toUpperCase()}
-              </span>
-            )}
-          </div>
-          <h2 style={{
-            fontFamily: 'var(--display)', fontSize: 36,
-            lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
-          }}>Leaderboard</h2>
+          {activeTab === 'prode' ? (
+            <>
+              <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
+                POOL STANDINGS · {standings.length} PLAYERS · SEASON 2026
+                {data.champion && (
+                  <span style={{ marginLeft: 10, color: 'var(--green)' }}>
+                    ● CHAMPION: {data.champion.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <h2 style={{
+                fontFamily: 'var(--display)', fontSize: 36,
+                lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
+              }}>Leaderboard</h2>
+            </>
+          ) : (
+            <>
+              <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
+                BRACKET CHALLENGE · {bracketData.length} BRACKET{bracketData.length !== 1 ? 'S' : ''} · SEASON 2026
+              </div>
+              <h2 style={{
+                fontFamily: 'var(--display)', fontSize: 36,
+                lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
+              }}>Bracket</h2>
+            </>
+          )}
         </div>
-        {!knockoutStarted && (
+        {activeTab === 'prode' && !knockoutStarted && (
           <div className="label" style={{ color: 'var(--muted)', fontSize: 10, textAlign: 'right' }}>
             🔒 Champion picks hidden<br />until knockout stage
           </div>
         )}
       </div>
 
-      {/* Podium (only when 3+ players) */}
-      {standings.length >= 3 && (
-        <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+      {activeTab === 'prode' && (
+        <>
+          {/* Podium (only when 3+ players) */}
+          {standings.length >= 3 && (
+            <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+          )}
+          {/* Full table */}
+          <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+        </>
       )}
 
-      {/* Full table */}
-      <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+      {activeTab === 'bracket' && (
+        <BracketTable brackets={bracketData} currentUserId={currentUserId} />
+      )}
 
       {/* Modal */}
       {selectedPlayer && (
