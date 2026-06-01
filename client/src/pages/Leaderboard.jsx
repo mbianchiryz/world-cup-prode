@@ -581,30 +581,47 @@ export default function Leaderboard() {
   const standings = data.standings || [];
   const knockoutStarted = Date.now() >= CHAMPION_LOCK_DATE.getTime();
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
-      {/* Tab switcher */}
+  // Convert bracket data into a Podium-compatible player list
+  const bracketPlayers = [...bracketData]
+    .sort((a, b) => {
+      const ac = a.locked || a.phase === 'complete' ? 1 : 0;
+      const bc = b.locked || b.phase === 'complete' ? 1 : 0;
+      return bc - ac || a.name.localeCompare(b.name);
+    })
+    .map(b => ({
+      id: b.userId,
+      name: b.name,
+      total: 0,
+      exact: 0,
+      correct: 0,
+      streak: 0,
+      pickedChampion: b.knockoutPicks?.['final'] || null,
+    }));
+
+  // Tab switcher — shared pill component
+  function TabSwitcher() {
+    return (
       <div style={{ display: 'flex', gap: 6 }}>
         {[
-          { key: 'prode', label: 'Prode' },
+          { key: 'prode',   label: 'Prode' },
           { key: 'bracket', label: 'Bracket Challenge' },
         ].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            style={{
-              all: 'unset', cursor: 'pointer',
-              padding: '8px 18px',
-              borderRadius: 999,
-              fontWeight: 700, fontSize: 13,
-              background: activeTab === key ? 'var(--ink)' : 'transparent',
-              color: activeTab === key ? '#fff' : 'var(--muted)',
-              border: `1.5px solid ${activeTab === key ? 'var(--ink)' : 'var(--line)'}`,
-              transition: 'all .12s',
-            }}
-          >{label}</button>
+          <button key={key} onClick={() => setActiveTab(key)} style={{
+            all: 'unset', cursor: 'pointer',
+            padding: '8px 18px', borderRadius: 999,
+            fontWeight: 700, fontSize: 13,
+            background: activeTab === key ? 'var(--ink)' : 'transparent',
+            color:      activeTab === key ? '#fff'        : 'var(--muted)',
+            border: `1.5px solid ${activeTab === key ? 'var(--ink)' : 'var(--line)'}`,
+            transition: 'all .12s',
+          }}>{label}</button>
         ))}
       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
 
       {/* Section header */}
       <div style={{
@@ -612,32 +629,19 @@ export default function Leaderboard() {
         borderBottom: '1px solid var(--line)', paddingBottom: 14, marginBottom: 4,
       }}>
         <div>
-          {activeTab === 'prode' ? (
-            <>
-              <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
-                POOL STANDINGS · {standings.length} PLAYERS · SEASON 2026
-                {data.champion && (
-                  <span style={{ marginLeft: 10, color: 'var(--green)' }}>
-                    ● CHAMPION: {data.champion.toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <h2 style={{
-                fontFamily: 'var(--display)', fontSize: 36,
-                lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
-              }}>Leaderboard</h2>
-            </>
-          ) : (
-            <>
-              <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
-                BRACKET CHALLENGE · {bracketData.length} BRACKET{bracketData.length !== 1 ? 'S' : ''} · SEASON 2026
-              </div>
-              <h2 style={{
-                fontFamily: 'var(--display)', fontSize: 36,
-                lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0,
-              }}>Bracket</h2>
-            </>
-          )}
+          <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
+            {activeTab === 'prode'
+              ? `POOL STANDINGS · ${standings.length} PLAYERS · SEASON 2026`
+              : `BRACKET CHALLENGE · ${bracketData.length} BRACKET${bracketData.length !== 1 ? 'S' : ''} · SEASON 2026`}
+            {activeTab === 'prode' && data.champion && (
+              <span style={{ marginLeft: 10, color: 'var(--green)' }}>
+                ● CHAMPION: {data.champion.toUpperCase()}
+              </span>
+            )}
+          </div>
+          <h2 style={{ fontFamily: 'var(--display)', fontSize: 36, lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0 }}>
+            {activeTab === 'prode' ? 'Leaderboard' : 'Bracket'}
+          </h2>
         </div>
         {activeTab === 'prode' && !knockoutStarted && (
           <div className="label" style={{ color: 'var(--muted)', fontSize: 10, textAlign: 'right' }}>
@@ -646,19 +650,118 @@ export default function Leaderboard() {
         )}
       </div>
 
-      {activeTab === 'prode' && (
-        <>
-          {/* Podium (only when 3+ players) */}
-          {standings.length >= 3 && (
-            <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
-          )}
-          {/* Full table */}
-          <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
-        </>
+      {/* Podium — reacts to active tab */}
+      {activeTab === 'prode' && standings.length >= 3 && (
+        <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+      )}
+      {activeTab === 'bracket' && bracketPlayers.length >= 3 && (
+        <Podium players={bracketPlayers} onSelect={() => {}} showChampion={true} />
       )}
 
+      {/* Tab switcher — between podium and table */}
+      <TabSwitcher />
+
+      {/* Prode table */}
+      {activeTab === 'prode' && (
+        <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+      )}
+
+      {/* Bracket table + scoring guide */}
       {activeTab === 'bracket' && (
-        <BracketTable brackets={bracketData} currentUserId={currentUserId} />
+        <>
+          {/* Scoring system explanation */}
+          <div style={{
+            background: 'var(--ink)', borderRadius: 'var(--r-lg)',
+            padding: '24px 28px', color: 'var(--bg)',
+          }}>
+            <div className="label" style={{ color: '#8B8B90', marginBottom: 12 }}>HOW SCORING WORKS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+              {/* Groups */}
+              <div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', color: 'var(--yellow)', marginBottom: 8 }}>
+                  Phase of Groups
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {[
+                    ['+1', 'per team in correct position'],
+                    ['+2', 'bonus for full group correct'],
+                  ].map(([pts, txt]) => (
+                    <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
+                        background: 'var(--yellow)', color: 'var(--ink)',
+                        borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>{pts}</span>
+                      <span style={{ fontSize: 13, color: '#C9C6BB' }}>{txt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Best 3rds */}
+              <div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', color: 'var(--cyan)', marginBottom: 8 }}>
+                  Best 3rd-place teams
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {[
+                    ['+1', 'per correct qualifier'],
+                    ['+1', 'extra for correct rank position'],
+                  ].map(([pts, txt]) => (
+                    <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
+                        background: 'var(--cyan)', color: 'var(--ink)',
+                        borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>{pts}</span>
+                      <span style={{ fontSize: 13, color: '#C9C6BB' }}>{txt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Knockout */}
+              <div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', color: 'var(--green)', marginBottom: 8 }}>
+                  Knockout bracket
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {[
+                    ['+1',  'R32 correct pick'],
+                    ['+2',  'R16 correct pick'],
+                    ['+4',  'Quarter-final'],
+                    ['+8',  'Semi-final'],
+                    ['+16', 'Final'],
+                    ['+32', 'Champion 🏆'],
+                  ].map(([pts, txt]) => (
+                    <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
+                        background: 'var(--green)', color: '#fff',
+                        borderRadius: 4, padding: '1px 6px', flexShrink: 0, minWidth: 28, textAlign: 'center' }}>{pts}</span>
+                      <span style={{ fontSize: 13, color: '#C9C6BB' }}>{txt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Tiebreakers */}
+              <div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.02em', color: 'var(--orange)', marginBottom: 8 }}>
+                  Tiebreakers
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {[
+                    ['1°', 'Most total points'],
+                    ['2°', 'Closest Final score'],
+                    ['3°', 'Most knockout picks correct'],
+                    ['4°', 'Submitted first'],
+                  ].map(([n, txt]) => (
+                    <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
+                        color: 'var(--orange)', flexShrink: 0, width: 24 }}>{n}</span>
+                      <span style={{ fontSize: 13, color: '#C9C6BB' }}>{txt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <BracketTable brackets={bracketData} currentUserId={currentUserId} />
+        </>
       )}
 
       {/* Modal */}
