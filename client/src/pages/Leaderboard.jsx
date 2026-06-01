@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getFlag, getAbbr } from '@/lib/matches-data';
-import { getLeaderboard, getUserPicks, getBracketLeaderboard } from '@/lib/supabase-db';
+import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase';
+import { calcBracketScore } from '@/lib/bracket-data';
 
 const CLOSE = (
   <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -474,12 +475,9 @@ function PickRow({ pick, last }) {
 
 // ── Bracket tab table ─────────────────────────────────────────────────────────
 function BracketTable({ brackets, currentUserId }) {
-  const sorted = [...brackets].sort((a, b) => {
-    const aComplete = a.locked || a.phase === 'complete' ? 1 : 0;
-    const bComplete = b.locked || b.phase === 'complete' ? 1 : 0;
-    if (bComplete !== aComplete) return bComplete - aComplete;
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = [...brackets].sort((a, b) =>
+    (b.score ?? 0) - (a.score ?? 0) || a.name.localeCompare(b.name)
+  );
 
   if (!sorted.length) {
     return (
@@ -539,8 +537,8 @@ function BracketTable({ brackets, currentUserId }) {
               )}
             </div>
             <div style={{ textAlign: 'right', fontFamily: 'var(--display)', fontSize: 20,
-              letterSpacing: '-0.03em', color: isMe ? 'var(--bg)' : 'var(--muted)' }}>
-              0
+              letterSpacing: '-0.03em', color: isMe ? 'var(--bg)' : (b.score > 0 ? 'var(--ink)' : 'var(--muted)') }}>
+              {b.score ?? 0}
             </div>
           </div>
         );
@@ -554,9 +552,10 @@ export default function Leaderboard() {
   const [data, setData]               = useState({ standings: [], champion: null });
   const [loading, setLoading]         = useState(true);
   const [selectedPlayer, setSelected] = useState(null);
-  const [bracketData, setBracketData] = useState([]);
-  const [activeTab, setActiveTab]     = useState('prode');
+  const [bracketData, setBracketData]     = useState([]);
+  const [activeTab, setActiveTab]         = useState('prode');
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [actualStandings, setActualStandings] = useState({});
 
   useEffect(() => {
     getLeaderboard().then(setData).finally(() => setLoading(false));
@@ -565,7 +564,20 @@ export default function Leaderboard() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setCurrentUserId(user.id);
     }).catch(() => {});
-    return () => clearInterval(i);
+    // Load live group standings for bracket scoring
+    function loadStandings() {
+      getGroupStandings().then(groups => {
+        // Convert [{ letter, standings: [{ team }] }] → { A: ['Mexico',...], B: [...] }
+        const map = {};
+        for (const { letter, standings } of groups) {
+          map[letter] = standings.map(s => s.team);
+        }
+        setActualStandings(map);
+      }).catch(() => {});
+    }
+    loadStandings();
+    const j = setInterval(loadStandings, 60_000);
+    return () => { clearInterval(i); clearInterval(j); };
   }, []);
 
   const handleClose = useCallback(() => setSelected(null), []);
@@ -581,17 +593,31 @@ export default function Leaderboard() {
   const standings = data.standings || [];
   const knockoutStarted = Date.now() >= CHAMPION_LOCK_DATE.getTime();
 
-  // Convert bracket data into a Podium-compatible player list
-  const bracketPlayers = [...bracketData]
-    .sort((a, b) => {
-      const ac = a.locked || a.phase === 'complete' ? 1 : 0;
-      const bc = b.locked || b.phase === 'complete' ? 1 : 0;
-      return bc - ac || a.name.localeCompare(b.name);
-    })
+  // Build "actual" object for bracket scoring from live group standings
+  const actualForScoring = useMemo(() => ({
+    groupStandings:  actualStandings,
+    thirdQualifiers: [], // determined after group stage; knockout scoring accumulates as matches finish
+    knockoutResults: {}, // will be populated when knockout matches finish
+  }), [actualStandings]);
+
+  // Score each bracket player with live data
+  const scoredBracketData = useMemo(() =>
+    bracketData.map(b => ({
+      ...b,
+      score: calcBracketScore(
+        { groupPicks: b.groupPicks, thirdPicks: b.thirdPicks, knockoutPicks: b.knockoutPicks },
+        actualForScoring
+      ).total,
+    }))
+  , [bracketData, actualForScoring]);
+
+  // Convert to Podium-compatible format (sorted by score)
+  const bracketPlayers = [...scoredBracketData]
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
     .map(b => ({
       id: b.userId,
       name: b.name,
-      total: 0,
+      total: b.score,
       exact: 0,
       correct: 0,
       streak: 0,
@@ -760,7 +786,7 @@ export default function Leaderboard() {
             </div>
           </div>
 
-          <BracketTable brackets={bracketData} currentUserId={currentUserId} />
+          <BracketTable brackets={scoredBracketData} currentUserId={currentUserId} />
         </>
       )}
 
