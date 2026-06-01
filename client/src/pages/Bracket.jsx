@@ -710,11 +710,34 @@ function BracketPlayerModal({ bracket, onClose }) {
 
 // ── Landing / intro ───────────────────────────────────────────────────────────
 function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
+  const [showScoring, setShowScoring] = useState(false);
+
   const steps = [
     { n: 1, title: 'Rank each group', desc: 'Predict the final standings for all 12 groups.' },
     { n: 2, title: 'Pick best 3rds',  desc: 'Choose 8 of the 12 third-place teams to advance.' },
     { n: 3, title: 'Fill the bracket', desc: 'Pick the winner of every knockout match.' },
   ];
+
+  const scoringSections = [
+    {
+      label: 'Phase of Groups', color: 'var(--yellow)',
+      rows: [['+1','per team in correct position'],['+2','bonus for full group correct']],
+    },
+    {
+      label: 'Best 3rd-place', color: 'var(--cyan)',
+      rows: [['+1','per correct qualifier'],['+1','extra for correct rank']],
+    },
+    {
+      label: 'Knockout bracket', color: 'var(--green)',
+      rows: [['+1','R32'],['+2','R16'],['+4','Quarter-final'],['+8','Semi-final'],['+16','Final'],['+32','Champion 🏆']],
+    },
+    {
+      label: 'Tiebreakers', color: 'var(--orange)',
+      rows: [['1°','Total points'],['2°','Closest Final score'],['3°','Knockout picks correct'],['4°','Submitted first']],
+      isTiebreak: true,
+    },
+  ];
+
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>
       <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '32px 32px 28px', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
@@ -732,7 +755,7 @@ function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
       </div>
 
       {!locked && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           {steps.map(s => (
             <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 16px',
               background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)' }}>
@@ -742,6 +765,53 @@ function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{s.title}</div>
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scoring toggle */}
+      <button
+        onClick={() => setShowScoring(v => !v)}
+        style={{
+          all: 'unset', cursor: 'pointer', width: '100%', boxSizing: 'border-box',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px', marginBottom: 16,
+          background: 'var(--bg-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)',
+          fontWeight: 600, fontSize: 13,
+        }}
+      >
+        <span>ℹ️ How scoring works</span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>
+          {showScoring ? '▲ hide' : '▼ show'}
+        </span>
+      </button>
+
+      {showScoring && (
+        <div style={{
+          background: 'var(--ink)', borderRadius: 'var(--r)',
+          padding: '20px 20px 16px', marginBottom: 16,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+        }}>
+          {scoringSections.map(({ label, color, rows, isTiebreak }) => (
+            <div key={label}>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 13, color, letterSpacing: '-0.01em', marginBottom: 8 }}>
+                {label}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {rows.map(([pts, txt]) => (
+                  <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    {isTiebreak ? (
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color, flexShrink: 0, width: 18 }}>{pts}</span>
+                    ) : (
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10,
+                        background: color, color: color === 'var(--yellow)' || color === 'var(--cyan)' ? 'var(--ink)' : '#fff',
+                        borderRadius: 4, padding: '1px 5px', flexShrink: 0, minWidth: 24, textAlign: 'center' }}>{pts}</span>
+                    )}
+                    <span style={{ fontSize: 12, color: '#C9C6BB' }}>{txt}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
