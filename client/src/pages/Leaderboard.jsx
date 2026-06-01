@@ -556,6 +556,7 @@ export default function Leaderboard() {
   const [activeTab, setActiveTab]         = useState('prode');
   const [currentUserId, setCurrentUserId] = useState(null);
   const [actualStandings, setActualStandings] = useState({});
+  const [showScoring, setShowScoring]         = useState(false);
 
   useEffect(() => {
     getLeaderboard().then(setData).finally(() => setLoading(false));
@@ -695,12 +696,22 @@ export default function Leaderboard() {
       {/* Bracket table + scoring guide */}
       {activeTab === 'bracket' && (
         <>
-          {/* Scoring system explanation */}
-          <div style={{
-            background: 'var(--ink)', borderRadius: 'var(--r-lg)',
-            padding: '24px 28px', color: 'var(--bg)',
-          }}>
-            <div className="label" style={{ color: '#8B8B90', marginBottom: 12 }}>HOW SCORING WORKS</div>
+          {/* Scoring system — collapsible */}
+          <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+            <button
+              onClick={() => setShowScoring(v => !v)}
+              style={{
+                all: 'unset', cursor: 'pointer', width: '100%', boxSizing: 'border-box',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '16px 28px',
+              }}
+            >
+              <div className="label" style={{ color: '#8B8B90' }}>HOW SCORING WORKS</div>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#8B8B90' }}>
+                {showScoring ? '▲ hide' : '▼ show'}
+              </span>
+            </button>
+            {showScoring && <div style={{ padding: '0 28px 24px', color: 'var(--bg)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
               {/* Groups */}
               <div>
@@ -784,6 +795,7 @@ export default function Leaderboard() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           <BracketTable brackets={scoredBracketData} currentUserId={currentUserId} />
