@@ -707,6 +707,13 @@ export default function Bracket() {
   const [allBrackets, setAllBrackets] = useState([]);
   const [selectedBracket, setSelected] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
 
   // Load own bracket + leaderboard
   useEffect(() => {
@@ -894,7 +901,32 @@ export default function Bracket() {
       )}
 
       {view === 'knockout' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 220px', gap: 32, alignItems: 'start' }}>
+        <div style={{
+          display: isMobile ? 'flex' : 'grid',
+          flexDirection: 'column',
+          gridTemplateColumns: isMobile ? undefined : 'minmax(0,1fr) 200px',
+          gap: isMobile ? 16 : 32,
+          alignItems: 'start',
+        }}>
+          {/* Mobile only: champion banner at the very top when picked */}
+          {isMobile && knockoutPicks['final'] && (
+            <div style={{
+              background: 'var(--ink)', borderRadius: 'var(--r)',
+              padding: '12px 18px',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <ITrophy />
+              <span style={{ fontSize: 28 }}>{getFlag(knockoutPicks['final'])}</span>
+              <div>
+                <div className="label" style={{ color: '#8B8B90', fontSize: 9 }}>YOUR CHAMPION</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.03em', color: 'var(--bg)' }}>
+                  {knockoutPicks['final']}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bracket tree */}
           <BracketTree
             groupPicks={groupPicks}
             thirdPicks={thirdPicks}
@@ -905,39 +937,28 @@ export default function Bracket() {
             locked={locked}
             saving={saving}
           />
-          {/* Side: champion pick display */}
-          <div>
-            <div className="label" style={{ color: 'var(--muted)', marginBottom: 10 }}>CHAMPION</div>
-            <div style={{ background: 'var(--ink)', borderRadius: 'var(--r)', padding: '18px 16px', textAlign: 'center' }}>
-              <div style={{ marginBottom: 8 }}><ITrophy /></div>
-              {knockoutPicks['final'] ? (
-                <>
-                  <div style={{ fontSize: 36 }}>{getFlag(knockoutPicks['final'])}</div>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.03em', color: 'var(--bg)', marginTop: 6 }}>
-                    {knockoutPicks['final']}
-                  </div>
-                </>
-              ) : (
-                <div style={{ color: '#8B8B90', fontSize: 13 }}>
-                  Fill in the bracket<br/>to pick your champion
-                </div>
-              )}
-            </div>
 
-            {/* 3rd picks summary */}
-            <div style={{ marginTop: 20 }}>
-              <div className="label" style={{ color: 'var(--muted)', marginBottom: 8 }}>YOUR 3RD-PLACE PICKS</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {thirdPicks.map(team => (
-                  <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '6px 10px', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}>
-                    <span style={{ fontSize: 16 }}>{getFlag(team)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>{team}</span>
+          {/* Desktop only: champion side card */}
+          {!isMobile && (
+            <div>
+              <div className="label" style={{ color: 'var(--muted)', marginBottom: 10 }}>CHAMPION</div>
+              <div style={{ background: 'var(--ink)', borderRadius: 'var(--r)', padding: '18px 16px', textAlign: 'center' }}>
+                <div style={{ marginBottom: 8 }}><ITrophy /></div>
+                {knockoutPicks['final'] ? (
+                  <>
+                    <div style={{ fontSize: 36 }}>{getFlag(knockoutPicks['final'])}</div>
+                    <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.03em', color: 'var(--bg)', marginTop: 6 }}>
+                      {knockoutPicks['final']}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: '#8B8B90', fontSize: 13 }}>
+                    Fill in the bracket<br/>to pick your champion
                   </div>
-                ))}
+                )}
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
