@@ -24,16 +24,6 @@ const LOCK_DATE_STR = BRACKET_LOCK.toLocaleDateString('en-US',
 const IUp   = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>;
 const IDown = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>;
 const ICheck = () => <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
-const ITrophy = () => (
-  <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-    <path d="M7 3h10v3a5 5 0 0 1-10 0V3z" fill="var(--yellow)"/>
-    <path d="M7 5H4v2a3 3 0 0 0 3 3" stroke="var(--yellow)" strokeWidth="1.6" fill="none"/>
-    <path d="M17 5h3v2a3 3 0 0 1-3 3" stroke="var(--yellow)" strokeWidth="1.6" fill="none"/>
-    <rect x="9" y="11" width="6" height="3" rx="0.5" fill="var(--yellow)"/>
-    <rect x="7" y="14" width="10" height="2.5" rx="0.5" fill="var(--yellow)"/>
-    <rect x="6" y="17" width="12" height="3" rx="0.5" fill="var(--yellow)"/>
-  </svg>
-);
 
 // ── Phase 1: Group Ranker ─────────────────────────────────────────────────────
 function GroupRanker({ groupLetter, ranking, onChange, onNext, onPrev, groupIndex, locked }) {
@@ -707,13 +697,6 @@ export default function Bracket() {
   const [allBrackets, setAllBrackets] = useState([]);
   const [selectedBracket, setSelected] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
-
-  useEffect(() => {
-    const h = () => setIsMobile(window.innerWidth < 640);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, []);
 
   // Load own bracket + leaderboard
   useEffect(() => {
@@ -901,65 +884,16 @@ export default function Bracket() {
       )}
 
       {view === 'knockout' && (
-        <div style={{
-          display: isMobile ? 'flex' : 'grid',
-          flexDirection: 'column',
-          gridTemplateColumns: isMobile ? undefined : 'minmax(0,1fr) 200px',
-          gap: isMobile ? 16 : 32,
-          alignItems: 'start',
-        }}>
-          {/* Mobile only: champion banner at the very top when picked */}
-          {isMobile && knockoutPicks['final'] && (
-            <div style={{
-              background: 'var(--ink)', borderRadius: 'var(--r)',
-              padding: '12px 18px',
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <ITrophy />
-              <span style={{ fontSize: 28 }}>{getFlag(knockoutPicks['final'])}</span>
-              <div>
-                <div className="label" style={{ color: '#8B8B90', fontSize: 9 }}>YOUR CHAMPION</div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.03em', color: 'var(--bg)' }}>
-                  {knockoutPicks['final']}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Bracket tree */}
-          <BracketTree
-            groupPicks={groupPicks}
-            thirdPicks={thirdPicks}
-            knockoutPicks={knockoutPicks}
-            onPick={handlePick}
-            onBack={() => setView('thirds')}
-            onLock={handleLock}
-            locked={locked}
-            saving={saving}
-          />
-
-          {/* Desktop only: champion side card */}
-          {!isMobile && (
-            <div>
-              <div className="label" style={{ color: 'var(--muted)', marginBottom: 10 }}>CHAMPION</div>
-              <div style={{ background: 'var(--ink)', borderRadius: 'var(--r)', padding: '18px 16px', textAlign: 'center' }}>
-                <div style={{ marginBottom: 8 }}><ITrophy /></div>
-                {knockoutPicks['final'] ? (
-                  <>
-                    <div style={{ fontSize: 36 }}>{getFlag(knockoutPicks['final'])}</div>
-                    <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.03em', color: 'var(--bg)', marginTop: 6 }}>
-                      {knockoutPicks['final']}
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ color: '#8B8B90', fontSize: 13 }}>
-                    Fill in the bracket<br/>to pick your champion
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <BracketTree
+          groupPicks={groupPicks}
+          thirdPicks={thirdPicks}
+          knockoutPicks={knockoutPicks}
+          onPick={handlePick}
+          onBack={() => setView('thirds')}
+          onLock={handleLock}
+          locked={locked}
+          saving={saving}
+        />
       )}
 
       {/* Player bracket modal */}
