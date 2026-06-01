@@ -233,11 +233,12 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, locked
 }
 
 // ── Phase 3: Bracket tree visualization ──────────────────────────────────────
-const SLOT   = 84;   // px per R32 slot (card + spacing)
-const CARD_H = 68;   // match card height
-const CARD_W = 152;  // match card width
-const COL_W  = 200;  // total col width (card + gap to next col)
-const GAP    = COL_W - CARD_W; // 48px gap between card right and next col left
+const SLOT    = 84;   // px per R32 slot (card + spacing)
+const CARD_H  = 68;   // regular match card height
+const FINAL_H = 108;  // Final card: 33 + 1 + 40 (score row) + 1 + 33
+const CARD_W  = 152;  // match card width
+const COL_W   = 200;  // total col width (card + gap to next col)
+const GAP     = COL_W - CARD_W; // 48px gap between card right and next col left
 
 const ROUND_DEFS = [
   { key: 'r32',   label: 'R32',     spm: 1,
@@ -251,13 +252,29 @@ const ROUND_DEFS = [
 ];
 
 function mCenter(matchIdx, spm) { return (matchIdx * spm + (spm - 1) / 2) * SLOT + SLOT / 2; }
-function mTop(matchIdx, spm)    { return (matchIdx * spm + (spm - 1) / 2) * SLOT + (SLOT - CARD_H) / 2; }
+function mTop(matchIdx, spm, cardH = CARD_H) { return (matchIdx * spm + (spm - 1) / 2) * SLOT + (SLOT - cardH) / 2; }
 
-function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, onLock, locked, saving }) {
+function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalScore, onBack, onLock, locked, saving }) {
   const ta = useMemo(() => assignThirds(thirdPicks), [thirdPicks]);
   const TOTAL_H = 16 * SLOT;
   const TOTAL_W = ROUND_DEFS.length * COL_W;
   const isComplete = knockoutComplete(knockoutPicks);
+
+  // Local state for Final score (save on blur, not on every keystroke)
+  const [fh, setFh] = useState(knockoutPicks['final_home'] ?? '');
+  const [fa, setFa] = useState(knockoutPicks['final_away'] ?? '');
+  useEffect(() => {
+    setFh(knockoutPicks['final_home'] ?? '');
+    setFa(knockoutPicks['final_away'] ?? '');
+  }, [knockoutPicks['final_home'], knockoutPicks['final_away']]);
+
+  function handleScoreChange(isHome, raw) {
+    const v = raw === '' ? '' : Math.max(0, Math.min(20, Number(raw)));
+    if (isHome) setFh(v); else setFa(v);
+  }
+  function handleScoreBlur() {
+    if (fh !== '' && fa !== '') onFinalScore?.(Number(fh), Number(fa));
+  }
 
   // SVG connector lines for every R16+ match
   const connectors = useMemo(() => {
@@ -299,12 +316,15 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, on
     const { home, away } = getMatchTeams(id, groupPicks, ta, knockoutPicks);
     const winner = knockoutPicks[id];
     const canPick = home && away && !locked;
-    const rowH = Math.floor((CARD_H - 1) / 2);
+    const cardH   = isFinal ? FINAL_H : CARD_H;
+    // For Final: 33px per team row + 40px score row; for others: split evenly
+    const teamRowH = isFinal ? 33 : Math.floor((CARD_H - 1) / 2);
+    const canScore = isFinal && !!home && !!away && !locked;
 
     return (
       <div style={{
         position: 'absolute', top, left: 0,
-        width: CARD_W, height: CARD_H,
+        width: CARD_W, height: cardH,
         border: `1.5px solid ${winner ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'var(--line)'}`,
         borderRadius: 8, overflow: 'hidden',
         background: isFinal ? 'var(--ink)' : 'var(--bg)',
@@ -318,7 +338,7 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, on
               style={{
                 all: 'unset', cursor: canPick ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '0 8px', height: rowH,
+                padding: '0 8px', height: teamRowH,
                 width: '100%', boxSizing: 'border-box',
                 background: sel ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'transparent',
                 borderBottom: i === 0 ? `1px solid ${isFinal ? 'var(--line-2)' : 'var(--line)'}` : 'none',
@@ -337,6 +357,50 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, on
             </button>
           );
         })}
+
+        {/* Score row — Final only */}
+        {isFinal && (
+          <div style={{
+            height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            borderTop: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.06)',
+          }}>
+            <input
+              type="number" min="0" max="20"
+              value={fh}
+              onChange={e => handleScoreChange(true, e.target.value)}
+              onBlur={handleScoreBlur}
+              disabled={!canScore}
+              placeholder="–"
+              style={{
+                width: 34, height: 26, textAlign: 'center',
+                background: canScore ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
+                border: `1px solid ${canScore ? 'var(--line)' : 'var(--line-2)'}`,
+                borderRadius: 5,
+                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
+                color: canScore ? 'var(--ink)' : '#8B8B90',
+                outline: 'none',
+              }}
+            />
+            <span style={{ color: '#8B8B90', fontFamily: 'var(--mono)', fontSize: 11 }}>–</span>
+            <input
+              type="number" min="0" max="20"
+              value={fa}
+              onChange={e => handleScoreChange(false, e.target.value)}
+              onBlur={handleScoreBlur}
+              disabled={!canScore}
+              placeholder="–"
+              style={{
+                width: 34, height: 26, textAlign: 'center',
+                background: canScore ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
+                border: `1px solid ${canScore ? 'var(--line)' : 'var(--line-2)'}`,
+                borderRadius: 5,
+                fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700,
+                color: canScore ? 'var(--ink)' : '#8B8B90',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -370,7 +434,9 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onBack, on
             <div key={roundIdx}
               style={{ position: 'absolute', left: roundIdx * COL_W, top: 0, width: CARD_W, height: TOTAL_H }}>
               {ids.map((id, matchIdx) => (
-                <BracketMatch key={id} id={id} top={mTop(matchIdx, spm)} isFinal={id === 'final'} />
+                <BracketMatch key={id} id={id}
+                  top={mTop(matchIdx, spm, id === 'final' ? FINAL_H : CARD_H)}
+                  isFinal={id === 'final'} />
               ))}
             </div>
           ))}
@@ -789,6 +855,13 @@ export default function Bracket() {
     persist({ knockout_picks: next, phase: knockoutComplete(next) ? 'complete' : 'knockout' });
   }
 
+  // ── Final score
+  function handleFinalScore(home, away) {
+    const next = { ...knockoutPicks, final_home: home, final_away: away };
+    setKnockout(next);
+    persist({ knockout_picks: next });
+  }
+
   // ── Lock bracket
   async function handleLock() {
     await persist({ group_picks: groupPicks, third_place_picks: thirdPicks, knockout_picks: knockoutPicks, phase: 'complete', locked: true });
@@ -889,6 +962,7 @@ export default function Bracket() {
           thirdPicks={thirdPicks}
           knockoutPicks={knockoutPicks}
           onPick={handlePick}
+          onFinalScore={handleFinalScore}
           onBack={() => setView('thirds')}
           onLock={handleLock}
           locked={locked}
