@@ -510,18 +510,19 @@ function BracketTable({ brackets, currentUserId }) {
             display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
             gap: 8, padding: '12px 16px', alignItems: 'center',
             borderBottom: '1px solid var(--line)',
-            background: isMe ? 'var(--ink)' : 'transparent',
+            background: 'transparent',
           }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: isMe ? 'var(--bg)' : 'var(--ink)' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
               {b.name}
-              {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9, opacity: 0.6 }}>YOU</span>}
+              {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9,
+                color: 'var(--muted)', fontWeight: 500 }}>YOU</span>}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {champion ? (
                 <>
                   <span style={{ fontSize: 18 }}>{getFlag(champion)}</span>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
-                    color: isMe ? 'var(--yellow)' : 'var(--ink)' }}>{getAbbr(champion)}</span>
+                    color: 'var(--ink)' }}>{getAbbr(champion)}</span>
                 </>
               ) : (
                 <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11 }}>–</span>
@@ -533,11 +534,11 @@ function BracketTable({ brackets, currentUserId }) {
                   color: 'var(--green)' }}>Complete ✓</span>
               ) : (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10,
-                  color: isMe ? '#8B8B90' : 'var(--muted)' }}>In progress</span>
+                  color: 'var(--muted)' }}>In progress</span>
               )}
             </div>
             <div style={{ textAlign: 'right', fontFamily: 'var(--display)', fontSize: 20,
-              letterSpacing: '-0.03em', color: isMe ? 'var(--bg)' : (b.score > 0 ? 'var(--ink)' : 'var(--muted)') }}>
+              letterSpacing: '-0.03em', color: b.score > 0 ? 'var(--ink)' : 'var(--muted)' }}>
               {b.score ?? 0}
             </div>
           </div>
