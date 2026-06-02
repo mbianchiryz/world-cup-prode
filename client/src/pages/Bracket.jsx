@@ -1005,7 +1005,7 @@ export default function Bracket() {
             ← Overview
           </button>
         )}
-        {view === 'landing' && allBrackets.length > 0 && (
+        {view === 'landing' && locked && allBrackets.length > 0 && (
           <button onClick={() => setView('leaderboard')}
             style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 6 }}>
             All brackets ({allBrackets.length})
@@ -1020,7 +1020,7 @@ export default function Bracket() {
           onViewAll={() => setView('leaderboard')}
           locked={locked}
           hasPicks={hasPicks}
-          hasLockedBrackets={allBrackets.length > 0}
+          hasLockedBrackets={locked && allBrackets.length > 0}
         />
       )}
 

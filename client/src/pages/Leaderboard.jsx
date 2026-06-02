@@ -584,21 +584,31 @@ export default function Leaderboard() {
   const handleClose = useCallback(() => setSelected(null), []);
 
   // Hooks must come before any early return (Rules of Hooks)
+  // Only score once at least one group match has been played (standings are meaningful)
+  const hasPlayedMatches = useMemo(() =>
+    Object.values(actualStandings).some(teams =>
+      teams.length > 0 && teams !== Object.values(actualStandings)[0]  // non-trivial check
+    )
+  , [actualStandings]);
+
+  // More reliable check: any team with pts > 0 or played > 0
+  const tournamentStarted = Date.now() >= new Date('2026-06-11T16:00:00.000Z').getTime();
+
   const actualForScoring = useMemo(() => ({
-    groupStandings:  actualStandings,
+    groupStandings:  tournamentStarted ? actualStandings : {},
     thirdQualifiers: [],
     knockoutResults: {},
-  }), [actualStandings]);
+  }), [actualStandings, tournamentStarted]);
 
   const scoredBracketData = useMemo(() =>
     bracketData.map(b => ({
       ...b,
-      score: calcBracketScore(
+      score: tournamentStarted ? calcBracketScore(
         { groupPicks: b.groupPicks || {}, thirdPicks: b.thirdPicks || [], knockoutPicks: b.knockoutPicks || {} },
         actualForScoring
-      ).total,
+      ).total : 0,
     }))
-  , [bracketData, actualForScoring]);
+  , [bracketData, actualForScoring, tournamentStarted]);
 
   if (loading) {
     return (
