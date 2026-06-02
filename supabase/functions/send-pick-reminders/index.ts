@@ -26,7 +26,7 @@ const RESEND_API_KEY            = Deno.env.get('RESEND_API_KEY')!;
 // @ts-expect-error — Deno global
 const FROM_EMAIL                = Deno.env.get('REMINDER_FROM_EMAIL') ?? 'prode@ryzlabs.com';
 // @ts-expect-error — Deno global
-const APP_URL                   = Deno.env.get('APP_URL') ?? 'https://main.d37p7v78zz1ezp.amplifyapp.com';
+const APP_URL                   = Deno.env.get('APP_URL') ?? 'https://prode.ryzlabs.com';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
