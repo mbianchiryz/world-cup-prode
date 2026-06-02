@@ -794,7 +794,7 @@ export default function Leaderboard() {
                 </div>
               </div>
             </div>
-            )}
+            </div>}
           </div>
 
           <BracketTable brackets={scoredBracketData} currentUserId={currentUserId} />
