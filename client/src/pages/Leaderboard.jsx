@@ -583,6 +583,23 @@ export default function Leaderboard() {
 
   const handleClose = useCallback(() => setSelected(null), []);
 
+  // Hooks must come before any early return (Rules of Hooks)
+  const actualForScoring = useMemo(() => ({
+    groupStandings:  actualStandings,
+    thirdQualifiers: [],
+    knockoutResults: {},
+  }), [actualStandings]);
+
+  const scoredBracketData = useMemo(() =>
+    bracketData.map(b => ({
+      ...b,
+      score: calcBracketScore(
+        { groupPicks: b.groupPicks || {}, thirdPicks: b.thirdPicks || [], knockoutPicks: b.knockoutPicks || {} },
+        actualForScoring
+      ).total,
+    }))
+  , [bracketData, actualForScoring]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.1em' }}>
@@ -593,24 +610,6 @@ export default function Leaderboard() {
 
   const standings = data.standings || [];
   const knockoutStarted = Date.now() >= CHAMPION_LOCK_DATE.getTime();
-
-  // Build "actual" object for bracket scoring from live group standings
-  const actualForScoring = useMemo(() => ({
-    groupStandings:  actualStandings,
-    thirdQualifiers: [], // determined after group stage; knockout scoring accumulates as matches finish
-    knockoutResults: {}, // will be populated when knockout matches finish
-  }), [actualStandings]);
-
-  // Score each bracket player with live data
-  const scoredBracketData = useMemo(() =>
-    bracketData.map(b => ({
-      ...b,
-      score: calcBracketScore(
-        { groupPicks: b.groupPicks, thirdPicks: b.thirdPicks, knockoutPicks: b.knockoutPicks },
-        actualForScoring
-      ).total,
-    }))
-  , [bracketData, actualForScoring]);
 
   // Convert to Podium-compatible format (sorted by score)
   const bracketPlayers = [...scoredBracketData]
