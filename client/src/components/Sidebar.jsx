@@ -15,6 +15,9 @@ function IGrid(s = 18) {
 function IBars(s = 18) {
   return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="20" x2="5" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14"/></svg>;
 }
+function IShield(s = 18) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+}
 function IBracket(s = 18) {
   return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <rect x="2" y="4" width="6" height="4" rx="1"/>
@@ -112,6 +115,15 @@ function SidebarContent({ user, onLogout, location, navigate }) {
           />
         ))}
 
+        {/* Admin link — only for admins */}
+        {isAdmin && (
+          <NavLink
+            link={{ href: '/admin', label: 'Admin', icon: IShield, color: 'var(--orange)' }}
+            active={location.pathname === '/admin'}
+            onClick={() => navigate('/admin')}
+          />
+        )}
+
         {/* Tournament status chip */}
         <div style={{
           marginTop: 'auto',
@@ -189,7 +201,7 @@ function SidebarContent({ user, onLogout, location, navigate }) {
   );
 }
 
-export default function Sidebar({ user, onLogout }) {
+export default function Sidebar({ user, onLogout, isAdmin }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);

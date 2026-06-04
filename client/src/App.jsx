@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { isAdminEmail } from '@/lib/supabase-db';
 
 import Sidebar from '@/components/Sidebar';
 import Login   from '@/pages/Login';
@@ -11,6 +12,7 @@ const Predictions = lazy(() => import('@/pages/Predictions'));
 const Groups      = lazy(() => import('@/pages/Groups'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const Bracket     = lazy(() => import('@/pages/Bracket'));
+const Admin       = lazy(() => import('@/pages/Admin'));
 
 function PageFallback() {
   return (
@@ -56,14 +58,15 @@ export default function App() {
 
   // Build a user object compatible with existing components
   const appUser = {
-    id:    user.id,
-    name:  user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-    email: user.email,
+    id:      user.id,
+    name:    user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+    email:   user.email,
+    isAdmin: isAdminEmail(user.email),
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', background: 'var(--bg)' }}>
-      <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} />
+      <Sidebar user={appUser} onLogout={() => supabase.auth.signOut()} isAdmin={appUser.isAdmin} />
       <main className="main-pad" style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 16px 40px' : '32px 36px', overflowX: 'hidden' }}>
         <Suspense fallback={<PageFallback />}>
           <Routes>
@@ -72,6 +75,7 @@ export default function App() {
             <Route path="/groups"      element={<Groups />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/bracket"     element={<Bracket />} />
+            {appUser.isAdmin && <Route path="/admin" element={<Admin />} />}
             <Route path="*"            element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

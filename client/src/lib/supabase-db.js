@@ -314,6 +314,24 @@ export async function getUserPicks(userId) {
   return { user: { id: profile.id, name: userName }, picks };
 }
 
+// ── Admin ─────────────────────────────────────────────────────────────────────
+export const ADMIN_EMAILS = [
+  'm.bianchi@ryzlabs.com',
+  'j.barcelo@ryzlabs.com',
+  'sam@ryzlabs.com',
+  'jordan@ryzlabs.com',
+];
+
+export function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(email?.toLowerCase());
+}
+
+export async function getAdminStats() {
+  const { data, error } = await supabase.rpc('get_admin_stats');
+  if (error) throw error;
+  return data || [];
+}
+
 // ── Bracket Challenge ─────────────────────────────────────────────────────────
 export async function getBracketChallenge() {
   const { data: { user } } = await supabase.auth.getUser();
