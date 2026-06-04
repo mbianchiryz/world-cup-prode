@@ -75,7 +75,7 @@ function NavLink({ link, active, onClick }) {
   );
 }
 
-function SidebarContent({ user, onLogout, location, navigate }) {
+function SidebarContent({ user, onLogout, location, navigate, isAdmin }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Brand */}
@@ -274,7 +274,7 @@ export default function Sidebar({ user, onLogout, isAdmin }) {
             >
               <X size={20} />
             </button>
-            <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
+            <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} isAdmin={isAdmin} />
           </aside>
         </div>
       )}
