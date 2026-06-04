@@ -281,7 +281,7 @@ export default function Sidebar({ user, onLogout, isAdmin }) {
 
       {/* Desktop sidebar — hidden on mobile via JS isMobile state */}
       <aside style={{ ...sidebarStyle, display: isMobile ? 'none' : 'flex' }} className="desktop-sidebar">
-        <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} />
+        <SidebarContent user={user} onLogout={onLogout} location={location} navigate={navigate} isAdmin={isAdmin} />
       </aside>
 
     </>
