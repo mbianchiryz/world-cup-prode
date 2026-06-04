@@ -42,11 +42,10 @@ const BOLT = (
   </svg>
 );
 
-const FACTS = [
+const FACTS_STATIC = [
   { label: 'Teams',    value: '48',  sub: 'First ever 48-team edition', color: 'var(--red)' },
   { label: 'Matches',  value: '104', sub: 'Expanded from 64',           color: 'var(--blue)' },
   { label: 'Nations',  value: '3',   sub: 'USA · Canada · Mexico',      color: 'var(--green)' },
-  { label: 'Days',     value: '39',  sub: 'Jun 11 – Jul 19, 2026',      color: 'var(--yellow)' },
 ];
 
 const SCORING = [
@@ -237,10 +236,14 @@ function Hero({ nextMatch, onNavigate }) {
 }
 
 // ── Facts row ─────────────────────────────────────────────────────────────────
-function FactsRow() {
+function FactsRow({ participants }) {
+  const facts = [
+    ...FACTS_STATIC,
+    { label: 'Players', value: String(participants), sub: 'RYZ Labs pool', color: 'var(--yellow)' },
+  ];
   return (
     <div className="mob-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-      {FACTS.map((f) => {
+      {facts.map((f) => {
         const isYellow = f.color === 'var(--yellow)';
         return (
           <div key={f.label} style={{
@@ -494,7 +497,7 @@ export default function Home() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
       <Hero nextMatch={nextMatch} onNavigate={navigate} />
-      <FactsRow />
+      <FactsRow participants={leaderboard.standings?.length ?? 0} />
       <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
         <RecentResults matches={matches} />
         <TopOfPool standings={leaderboard.standings || []} onNavigate={navigate} />
