@@ -136,6 +136,18 @@ function Hero({ nextMatch, onNavigate }) {
               Continue picks {ARROW}
             </button>
             <button
+              onClick={() => onNavigate('/bracket')}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                border: '1.5px solid #3A3A45', color: '#fff',
+                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
+                padding: '13px 22px',
+              }}
+            >
+              Bracket {ARROW}
+            </button>
+            <button
               onClick={() => onNavigate('/leaderboard')}
               style={{
                 all: 'unset', cursor: 'pointer',
@@ -396,34 +408,75 @@ function TopOfPool({ standings, onNavigate }) {
 }
 
 // ── Scoring Rules ─────────────────────────────────────────────────────────────
+const BRACKET_SCORING = [
+  { pts: '+1/+2', text: 'Group position correct (+2 bonus full group)', colors: ['var(--yellow)'] },
+  { pts: '+1/+2', text: 'Best 3rd qualifier correct (+1 extra right rank)', colors: ['var(--cyan)'] },
+  { pts: '+1',    text: 'Round of 32 correct pick',   colors: ['var(--blue)'] },
+  { pts: '+2',    text: 'Round of 16 correct pick',   colors: ['var(--blue)'] },
+  { pts: '+4',    text: 'Quarter-final correct pick', colors: ['var(--blue)'] },
+  { pts: '+8',    text: 'Semi-final correct pick',    colors: ['var(--blue)'] },
+  { pts: '+16',   text: 'Final correct pick',         colors: ['var(--green)'] },
+  { pts: '+32',   text: 'Champion correct 🏆',        colors: ['var(--yellow)'] },
+];
+const BRACKET_SCORING_COLORS = [
+  'var(--yellow)', 'var(--cyan)', 'var(--blue)', 'var(--blue)',
+  'var(--blue)', 'var(--blue)', 'var(--green)', 'var(--yellow)',
+];
+
 function ScoringRules() {
+  const [tab, setTab] = useState('prode');
   return (
     <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-      <div style={{
-        background: 'var(--ink)', color: 'var(--bg)',
-        padding: '5px 12px',
-        fontFamily: 'var(--mono)', fontSize: 10.5,
-        letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600,
-      }}>How Scoring Works</div>
-      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {SCORING.map((s, i) => (
-          <div key={s.pts} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              background: SCORING_COLORS[i],
-              color: SCORING_COLORS[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff',
-              borderRadius: 'var(--r-sm)',
-              padding: '3px 10px',
-              fontFamily: 'var(--display)',
-              fontSize: 20,
-              letterSpacing: '-0.03em',
-              minWidth: 64,
-              textAlign: 'center',
-              flexShrink: 0,
-            }}>{s.pts}</div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{s.text}</div>
-          </div>
+      {/* Header with tabs */}
+      <div style={{ background: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 0 }}>
+        {[{ key: 'prode', label: 'Prode' }, { key: 'bracket', label: 'Bracket Challenge' }].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            all: 'unset', cursor: 'pointer',
+            padding: '8px 14px',
+            fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em',
+            textTransform: 'uppercase', fontWeight: 600,
+            color: tab === t.key ? 'var(--ink)' : '#8B8B90',
+            background: tab === t.key ? 'var(--yellow)' : 'transparent',
+            transition: 'all .12s',
+          }}>{t.label}</button>
         ))}
       </div>
+
+      {/* Prode scoring */}
+      {tab === 'prode' && (
+        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {SCORING.map((s, i) => (
+            <div key={s.pts} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                background: SCORING_COLORS[i],
+                color: SCORING_COLORS[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff',
+                borderRadius: 'var(--r-sm)', padding: '3px 10px',
+                fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.03em',
+                minWidth: 64, textAlign: 'center', flexShrink: 0,
+              }}>{s.pts}</div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{s.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bracket scoring */}
+      {tab === 'bracket' && (
+        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {BRACKET_SCORING.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                background: BRACKET_SCORING_COLORS[i],
+                color: BRACKET_SCORING_COLORS[i] === 'var(--yellow)' || BRACKET_SCORING_COLORS[i] === 'var(--cyan)' ? 'var(--ink)' : '#fff',
+                borderRadius: 'var(--r-sm)', padding: '3px 8px',
+                fontFamily: 'var(--display)', fontSize: 17, letterSpacing: '-0.03em',
+                minWidth: 64, textAlign: 'center', flexShrink: 0,
+              }}>{s.pts}</div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{s.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
