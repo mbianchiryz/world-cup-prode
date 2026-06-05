@@ -243,7 +243,7 @@ export default function Groups() {
               {/* Rows */}
               {best.standings.map((s, i) => {
                 const advances  = i < 8;
-                const indicator = advances ? 'var(--yellow)' : 'transparent';
+                const indicator = advances ? 'var(--green)' : 'transparent';
                 return (
                   <div key={s.team} style={{
                     display: 'grid',
@@ -253,7 +253,7 @@ export default function Groups() {
                     borderBottom: i === 7
                       ? '2px solid var(--yellow)'
                       : i < best.standings.length - 1 ? '1px solid var(--line)' : 'none',
-                    background: advances ? 'rgba(255,199,0,0.04)' : 'transparent',
+                    background: advances ? 'rgba(0,184,82,0.05)' : 'transparent',
                   }}>
                     {/* Indicator bar */}
                     <div style={{ width: 3, height: 22, background: indicator, borderRadius: 2 }} />
