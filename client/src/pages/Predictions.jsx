@@ -194,12 +194,17 @@ function MatchCard({ match, pred, onSave }) {
     );
   }
 
+  // Visual state: finished = normal, locked-not-finished = greyed, open = normal
+  const isLockedNotFinished = locked && !match.finished;
+
   return (
     <div style={{
-      background: 'var(--bg)',
+      background: isLockedNotFinished ? 'var(--bg-2)' : 'var(--bg)',
       border: `1.5px solid var(--line)`,
       borderRadius: 'var(--r)',
       overflow: 'hidden',
+      opacity: isLockedNotFinished ? 0.6 : 1,
+      transition: 'opacity 0.3s ease',
     }}>
       {/* Card header: group badge + meta + time */}
       <div style={{
