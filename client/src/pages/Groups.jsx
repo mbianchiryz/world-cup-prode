@@ -157,7 +157,7 @@ export default function Groups() {
       }}>
         <div>
           <div className="label" style={{ color: 'var(--muted)', marginBottom: 6 }}>
-            GROUP STAGE · {groups.length} GROUPS · 4 TEAMS EACH
+            GROUP STAGE · {groups.filter(g => g.letter.length === 1).length} GROUPS · 4 TEAMS EACH
           </div>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 36, lineHeight: 0.9, letterSpacing: '-0.03em', margin: 0 }}>
             Group Standings
@@ -193,16 +193,86 @@ export default function Groups() {
         </span>
       </div>
 
-      {/* Groups grid */}
-      {groups.length === 0 ? (
+      {/* Groups grid — real groups A–L only */}
+      {groups.filter(g => g.letter.length === 1).length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--muted)', fontSize: 13 }}>
           No group data yet
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
-          {groups.map((g) => <GroupCard key={g.letter} group={g} />)}
+          {groups.filter(g => g.letter.length === 1).map((g) => <GroupCard key={g.letter} group={g} />)}
         </div>
       )}
+
+      {/* Best 3rd-place ranking — shown at the bottom */}
+      {groups.find(g => g.letter === 'BEST_3RDS') && (() => {
+        const best = groups.find(g => g.letter === 'BEST_3RDS');
+        return (
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
+            <div className="label" style={{ color: 'var(--muted)', marginBottom: 14 }}>
+              BEST 3RD-PLACE TEAMS · TOP 8 ADVANCE TO ROUND OF 32
+            </div>
+            <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+              {/* Header */}
+              <div style={{
+                background: 'var(--ink)', color: 'var(--bg)',
+                padding: '10px 14px',
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1, letterSpacing: '-0.03em' }}>
+                    Ranking
+                  </span>
+                  <span className="label" style={{ opacity: 0.6 }}>BEST 3RD-PLACE</span>
+                </div>
+                <div className="label" style={{ opacity: 0.6 }}>{best.standings.length} TEAMS</div>
+              </div>
+              {/* Column headers */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '32px 1fr 40px 40px 40px 40px 52px 48px',
+                gap: 4, padding: '6px 14px',
+                background: 'var(--bg-2)', borderBottom: '1px solid var(--line)',
+              }} className="label">
+                <div style={{ color: 'var(--muted)', fontSize: 9 }}>#</div>
+                <div className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>TEAM</div>
+                {['P','W','D','L','GD','PTS'].map(h => (
+                  <div key={h} className="label" style={{ color: 'var(--muted)', fontSize: 9, textAlign: 'center' }}>{h}</div>
+                ))}
+              </div>
+              {/* Rows */}
+              {best.standings.map((s, i) => {
+                const advances = i < 8;
+                return (
+                  <div key={s.team} style={{
+                    display: 'grid', gridTemplateColumns: '32px 1fr 40px 40px 40px 40px 52px 48px',
+                    gap: 4, padding: '9px 14px', alignItems: 'center',
+                    borderBottom: i === 7 ? '2px solid var(--yellow)' : '1px solid var(--line)',
+                    background: i === 7 ? 'rgba(255,199,0,0.04)' : 'transparent',
+                  }}>
+                    <div style={{
+                      fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
+                      color: advances ? 'var(--yellow)' : 'var(--muted)',
+                    }}>{s.rank}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>{s.flag}</span>
+                      <span style={{
+                        fontSize: 13, fontWeight: 600,
+                        color: advances ? 'var(--ink)' : 'var(--muted)',
+                      }}>{s.team}</span>
+                      {advances && (
+                        <span style={{ width: 7, height: 7, background: 'var(--yellow)', borderRadius: 2, flexShrink: 0 }} />
+                      )}
+                    </div>
+                    {[s.p, s.w, s.d, s.l, s.gd, s.pts].map((v, vi) => (
+                      <Stat key={vi} v={v} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
