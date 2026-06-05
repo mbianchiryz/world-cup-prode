@@ -229,43 +229,51 @@ export default function Groups() {
               </div>
               {/* Column headers */}
               <div style={{
-                display: 'grid', gridTemplateColumns: '32px 1fr 40px 40px 40px 40px 52px 48px',
-                gap: 4, padding: '6px 14px',
+                display: 'grid', gridTemplateColumns: '4px 18px 1fr repeat(5, 26px) 34px',
+                gap: 5, padding: '6px 10px',
                 background: 'var(--bg-2)', borderBottom: '1px solid var(--line)',
-              }} className="label">
-                <div style={{ color: 'var(--muted)', fontSize: 9 }}>#</div>
+              }}>
+                <div /><div />
                 <div className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>TEAM</div>
-                {['P','W','D','L','GD','PTS'].map(h => (
+                {['P','W','D','L','GD'].map(h => (
                   <div key={h} className="label" style={{ color: 'var(--muted)', fontSize: 9, textAlign: 'center' }}>{h}</div>
                 ))}
+                <div className="label" style={{ color: 'var(--muted)', fontSize: 9, textAlign: 'center' }}>PTS</div>
               </div>
               {/* Rows */}
               {best.standings.map((s, i) => {
-                const advances = i < 8;
+                const advances  = i < 8;
+                const indicator = advances ? 'var(--yellow)' : 'transparent';
                 return (
                   <div key={s.team} style={{
-                    display: 'grid', gridTemplateColumns: '32px 1fr 40px 40px 40px 40px 52px 48px',
-                    gap: 4, padding: '9px 14px', alignItems: 'center',
-                    borderBottom: i === 7 ? '2px solid var(--yellow)' : '1px solid var(--line)',
-                    background: i === 7 ? 'rgba(255,199,0,0.04)' : 'transparent',
+                    display: 'grid',
+                    gridTemplateColumns: '4px 18px 1fr repeat(5, 26px) 34px',
+                    alignItems: 'center', gap: 5,
+                    padding: '9px 10px',
+                    borderBottom: i === 7
+                      ? '2px solid var(--yellow)'
+                      : i < best.standings.length - 1 ? '1px solid var(--line)' : 'none',
+                    background: advances ? 'rgba(255,199,0,0.04)' : 'transparent',
                   }}>
-                    <div style={{
-                      fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
-                      color: advances ? 'var(--yellow)' : 'var(--muted)',
-                    }}>{s.rank}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 16 }}>{s.flag}</span>
-                      <span style={{
-                        fontSize: 13, fontWeight: 600,
-                        color: advances ? 'var(--ink)' : 'var(--muted)',
-                      }}>{s.team}</span>
-                      {advances && (
-                        <span style={{ width: 7, height: 7, background: 'var(--yellow)', borderRadius: 2, flexShrink: 0 }} />
-                      )}
+                    {/* Indicator bar */}
+                    <div style={{ width: 3, height: 22, background: indicator, borderRadius: 2 }} />
+                    {/* Rank */}
+                    <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>{s.rank}</div>
+                    {/* Team */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <span style={{ fontSize: 15, flexShrink: 0 }}>{s.flag || getFlag(s.team)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.team}
+                      </span>
                     </div>
-                    {[s.p, s.w, s.d, s.l, s.gd, s.pts].map((v, vi) => (
-                      <Stat key={vi} v={v} />
-                    ))}
+                    <Stat v={s.p} />
+                    <Stat v={s.w} />
+                    <Stat v={s.d} />
+                    <Stat v={s.l} />
+                    <Stat v={s.gd > 0 ? `+${s.gd}` : s.gd} />
+                    <div style={{ fontFamily: 'var(--display)', fontSize: 18, letterSpacing: '-0.02em', textAlign: 'center' }}>
+                      {s.pts}
+                    </div>
                   </div>
                 );
               })}
