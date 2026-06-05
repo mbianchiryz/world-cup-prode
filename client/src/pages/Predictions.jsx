@@ -1007,8 +1007,8 @@ export default function Predictions() {
   const [section, setSection] = useState('group');     // 'group' | 'knockout'
   const [pendingOnly, setPendingOnly] = useState(false);
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
+  const loadAll = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const [ms, predictions, champData] = await Promise.all([
         getMatches(),
@@ -1016,7 +1016,6 @@ export default function Predictions() {
         getChampionData(),
       ]);
       // Derive group_name from team names when DB has it as null
-      // (api-football doesn't return group letters; seed-matches leaves it null)
       const enriched = ms.map((m) => {
         if (m.stage === 'group' && !m.group_name) {
           const g = getTeamGroup(m.home_team) || getTeamGroup(m.away_team);
@@ -1031,13 +1030,15 @@ export default function Predictions() {
       setChamp(champData);
 
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  // Initial load — show spinner
+  useEffect(() => { loadAll(true); }, [loadAll]);
+  // Background refresh every 60s — silent, no spinner, no UI reset
   useEffect(() => {
-    const i = setInterval(loadAll, 60_000);
+    const i = setInterval(() => loadAll(false), 60_000);
     return () => clearInterval(i);
   }, [loadAll]);
 
@@ -1052,7 +1053,7 @@ export default function Predictions() {
   }, []);
 
   const made  = Object.keys(preds).length;
-  const total = matches.filter((m) => m.home_team !== 'TBD' && m.away_team !== 'TBD').length || 104;
+  const total = 104; // Full WC 2026: 72 group + 16 R32 + 8 R16 + 4 QF + 2 SF + 1 3rd + 1 Final
   const pct   = Math.round((made / total) * 100);
 
   if (loading) {
