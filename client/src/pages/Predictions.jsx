@@ -180,17 +180,25 @@ function MatchCard({ match, pred, onSave }) {
         />
       );
     }
-    // Locked/no edit: static with dashed border
+    // Locked: disabled input — visually greyed out, clearly non-editable
     return (
-      <div style={{
-        width: 48, height: 48,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
-        background: 'transparent',
-        border: '2px dashed var(--line)',
-        borderRadius: 'var(--r-sm)',
-        color: value !== '' && value !== undefined ? 'var(--ink)' : 'var(--muted)',
-      }}>{value !== '' && value !== undefined ? value : '–'}</div>
+      <input
+        type="number"
+        disabled
+        value={value !== '' && value !== undefined ? value : ''}
+        placeholder="–"
+        style={{
+          width: 48, height: 48,
+          textAlign: 'center',
+          fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 22,
+          background: 'var(--bg-2)',
+          border: '1.5px solid var(--line)',
+          borderRadius: 'var(--r-sm)',
+          color: 'var(--muted)',
+          cursor: 'not-allowed',
+          opacity: 0.7,
+        }}
+      />
     );
   }
 
