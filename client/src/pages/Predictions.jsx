@@ -1073,9 +1073,9 @@ export default function Predictions() {
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
           <div>
-            <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>YOUR PICKS · LOCK 1H BEFORE KICKOFF</div>
+            <div className="label" style={{ color: '#8B8B90', marginBottom: 8 }}>YOUR PREDICTIONS · LOCK 1H BEFORE KICKOFF</div>
             <h1 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px, 4vw, 52px)', lineHeight: 0.9, letterSpacing: '-0.04em', margin: 0 }}>
-              Make your picks.
+              Make your predictions.
             </h1>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
