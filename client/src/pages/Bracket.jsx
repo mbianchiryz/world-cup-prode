@@ -460,6 +460,37 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
         })}
       </div>
 
+      {/* Final score save bar — appears when both scores are filled */}
+      {knockoutPicks['final'] && fh !== '' && fa !== '' && !locked && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, padding: '10px 14px', marginBottom: 12,
+          background: 'var(--ink)', borderRadius: 'var(--r)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 16 }}>{getFlag(knockoutPicks['final'])}</span>
+            <span style={{ fontFamily: 'var(--display)', fontSize: 14, color: 'var(--bg)', letterSpacing: '-0.02em' }}>
+              Final score
+            </span>
+            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, color: 'var(--yellow)' }}>
+              {fh} – {fa}
+            </span>
+          </div>
+          <button
+            onClick={handleScoreBlur}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--green)', color: '#fff',
+              borderRadius: 'var(--r-sm)', fontWeight: 700, fontSize: 13,
+              padding: '7px 14px',
+            }}
+          >
+            Save score ✓
+          </button>
+        </div>
+      )}
+
       {/* Scrollable bracket */}
       <div style={{ overflowX: 'auto', paddingBottom: 20 }}>
         <div style={{ position: 'relative', width: TOTAL_W, height: TOTAL_H }}>
