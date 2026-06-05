@@ -28,6 +28,7 @@ const NAME_MAP: Record<string, string> = {
   'Iran':                   'IR Iran',
   'DR Congo':               'Congo DR',
   'Cape Verde':             'Cabo Verde',
+  'Cape Verde Islands':     'Cabo Verde',
   "Cote d'Ivoire":          "Côte d'Ivoire",
   'Ivory Coast':            "Côte d'Ivoire",
   'Curacao':                'Curaçao',
@@ -69,7 +70,8 @@ Deno.serve(async () => {
     for (const entry of group) {
       // entry.group = "Group A" → strip prefix
       const groupLetter = (entry.group as string)?.replace(/^Group\s*/i, '').trim();
-      if (!groupLetter) continue;
+      // Skip the "Ranking of third-placed teams" pseudo-group that api-football includes
+      if (!groupLetter || groupLetter.length > 1) continue;
 
       rows.push({
         group_name:    groupLetter,
