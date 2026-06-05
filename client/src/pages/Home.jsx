@@ -164,7 +164,7 @@ function Hero({ nextMatch, onNavigate }) {
 
         {/* Right: next match card */}
         {nextMatch && (
-          <div style={{
+          <div className="card-hover" style={{
             background: 'var(--bg)',
             color: 'var(--ink)',
             borderRadius: 'var(--r-lg)',
@@ -258,7 +258,7 @@ function FactsRow({ participants }) {
       {facts.map((f) => {
         const isYellow = f.color === 'var(--yellow)';
         return (
-          <div key={f.label} style={{
+          <div key={f.label} className="card-hover" style={{
             background: f.color,
             color: isYellow ? 'var(--ink)' : '#fff',
             borderRadius: 'var(--r)',
@@ -446,7 +446,7 @@ function ScoringRules() {
       {tab === 'prode' && (
         <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {SCORING.map((s, i) => (
-            <div key={s.pts} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div key={s.pts} className="row-hover" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
                 background: SCORING_COLORS[i],
                 color: SCORING_COLORS[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff',
@@ -464,7 +464,7 @@ function ScoringRules() {
       {tab === 'bracket' && (
         <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {BRACKET_SCORING.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div key={i} className="row-hover" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
                 background: BRACKET_SCORING_COLORS[i],
                 color: BRACKET_SCORING_COLORS[i] === 'var(--yellow)' || BRACKET_SCORING_COLORS[i] === 'var(--cyan)' ? 'var(--ink)' : '#fff',
@@ -496,7 +496,7 @@ function HostCities() {
           const cols = 4;
           const isYellow = c.color === 'var(--yellow)';
           return (
-            <div key={c.name} style={{
+            <div key={c.name} className="card-hover" style={{
               background: c.color,
               color: isYellow ? 'var(--ink)' : '#fff',
               padding: '13px 12px',

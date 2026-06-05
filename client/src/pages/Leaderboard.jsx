@@ -211,7 +211,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         background: hovered ? 'var(--bg-2)' : 'transparent',
         transition: 'background .12s',
       }}
-      className="lb-grid"
+      className="lb-grid row-hover"
     >
       {/* Rank badge */}
       <div style={{
@@ -506,7 +506,7 @@ function BracketTable({ brackets, currentUserId }) {
         const isComplete = b.locked || b.phase === 'complete';
         const champion = b.knockoutPicks?.['final'];
         return (
-          <div key={b.userId} style={{
+          <div key={b.userId} className="row-hover" style={{
             display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
             gap: 8, padding: '12px 16px', alignItems: 'center',
             borderBottom: '1px solid var(--line)',

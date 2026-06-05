@@ -757,7 +757,7 @@ function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
       {!locked && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           {steps.map(s => (
-            <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 16px',
+            <div key={s.n} className="card-hover" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 16px',
               background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)' }}>
               <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--ink)', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -774,6 +774,7 @@ function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
       {/* Scoring toggle */}
       <button
         onClick={() => setShowScoring(v => !v)}
+        className="card-hover"
         style={{
           all: 'unset', cursor: 'pointer', width: '100%', boxSizing: 'border-box',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

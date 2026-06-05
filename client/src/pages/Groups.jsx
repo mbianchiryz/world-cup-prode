@@ -28,7 +28,7 @@ function GroupCard({ group }) {
   const isYellow = color === 'var(--yellow)';
 
   return (
-    <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+    <div className="card-hover" style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
         background: color,

@@ -97,7 +97,7 @@ export default function Admin() {
           const loginRecent  = s.last_login && (Date.now() - new Date(s.last_login).getTime()) < 24 * 3600_000;
 
           return (
-            <div key={s.user_id} style={{
+            <div key={s.user_id} className="row-hover" style={{
               display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
               gap: 8, padding: '12px 16px', alignItems: 'center',
               borderBottom: '1px solid var(--line)',
