@@ -75,7 +75,7 @@ export default function Admin() {
       <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 200px 100px 160px 120px',
+          display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
           gap: 8, padding: '10px 16px',
           background: 'var(--ink)', color: 'var(--bg)',
         }} className="label">
@@ -83,17 +83,22 @@ export default function Admin() {
           <div style={{ textAlign: 'center' }}>EMAIL</div>
           <div style={{ textAlign: 'center' }}>PICKS</div>
           <div style={{ textAlign: 'center' }}>BRACKET</div>
-          <div style={{ textAlign: 'center' }}>BRACKET LOCK</div>
+          <div style={{ textAlign: 'center' }}>LOCKED</div>
+          <div style={{ textAlign: 'center' }}>LAST LOGIN</div>
         </div>
 
         {stats.map(s => {
-          const hasPicks   = s.prediction_count > 0;
+          const hasPicks     = s.prediction_count > 0;
           const bracketColor = s.bracket_locked ? 'var(--green)' : s.has_bracket ? 'var(--blue)' : 'var(--muted)';
           const bracketLabel = s.bracket_locked ? 'Locked ✓' : s.has_bracket ? 'In progress' : '–';
+          const lastLogin    = s.last_login
+            ? new Date(s.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+            : '–';
+          const loginRecent  = s.last_login && (Date.now() - new Date(s.last_login).getTime()) < 24 * 3600_000;
 
           return (
             <div key={s.user_id} style={{
-              display: 'grid', gridTemplateColumns: '1fr 200px 100px 160px 120px',
+              display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
               gap: 8, padding: '12px 16px', alignItems: 'center',
               borderBottom: '1px solid var(--line)',
             }}>
@@ -130,6 +135,17 @@ export default function Admin() {
                 ) : (
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>–</span>
                 )}
+              </div>
+
+              {/* Last login */}
+              <div style={{ textAlign: 'center' }}>
+                <span style={{
+                  fontFamily: 'var(--mono)', fontSize: 11,
+                  color: loginRecent ? 'var(--green)' : 'var(--muted)',
+                  fontWeight: loginRecent ? 700 : 400,
+                }}>
+                  {lastLogin}
+                </span>
               </div>
             </div>
           );
