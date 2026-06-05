@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getFlag, getAbbr } from '@/lib/matches-data';
-import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings } from '@/lib/supabase-db';
+import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings, getThirdPlaceRanking } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase';
 import { calcBracketScore } from '@/lib/bracket-data';
 
@@ -556,8 +556,9 @@ export default function Leaderboard() {
   const [bracketData, setBracketData]     = useState([]);
   const [activeTab, setActiveTab]         = useState('prode');
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [actualStandings, setActualStandings] = useState({});
-  const [showScoring, setShowScoring]         = useState(false);
+  const [actualStandings, setActualStandings]   = useState({});
+  const [actualThirdRank, setActualThirdRank]   = useState([]);
+  const [showScoring, setShowScoring]           = useState(false);
 
   useEffect(() => {
     getLeaderboard().then(setData).finally(() => setLoading(false));
@@ -566,15 +567,15 @@ export default function Leaderboard() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setCurrentUserId(user.id);
     }).catch(() => {});
-    // Load live group standings for bracket scoring
+    // Load live group standings + best-3rds ranking for bracket scoring
     function loadStandings() {
-      getGroupStandings().then(groups => {
-        // Convert [{ letter, standings: [{ team }] }] → { A: ['Mexico',...], B: [...] }
+      Promise.all([getGroupStandings(), getThirdPlaceRanking()]).then(([groups, thirds]) => {
         const map = {};
         for (const { letter, standings } of groups) {
           map[letter] = standings.map(s => s.team);
         }
         setActualStandings(map);
+        setActualThirdRank(thirds);
       }).catch(() => {});
     }
     loadStandings();
@@ -597,9 +598,9 @@ export default function Leaderboard() {
 
   const actualForScoring = useMemo(() => ({
     groupStandings:  tournamentStarted ? actualStandings : {},
-    thirdQualifiers: [],
+    thirdQualifiers: tournamentStarted ? actualThirdRank : [],
     knockoutResults: {},
-  }), [actualStandings, tournamentStarted]);
+  }), [actualStandings, actualThirdRank, tournamentStarted]);
 
   const scoredBracketData = useMemo(() =>
     bracketData.map(b => ({

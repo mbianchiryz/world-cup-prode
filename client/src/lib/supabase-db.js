@@ -314,6 +314,19 @@ export async function getUserPicks(userId) {
   return { user: { id: profile.id, name: userName }, picks };
 }
 
+// ── Best 3rd-place ranking (from api-football "Ranking of third-placed teams") ─
+// Returns ordered array of the top 8 team names that qualify for R32.
+// Only meaningful once the group stage is complete (all 48 matches finished).
+export async function getThirdPlaceRanking() {
+  const { data } = await supabase
+    .from('group_standings')
+    .select('team, rank, played')
+    .eq('group_name', 'BEST_3RDS')
+    .order('rank', { ascending: true })
+    .limit(8);
+  return (data || []).map(r => r.team);
+}
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export const ADMIN_EMAILS = [
   'm.bianchi@ryzlabs.com',

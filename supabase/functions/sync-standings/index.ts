@@ -69,8 +69,30 @@ Deno.serve(async () => {
   for (const group of standingsArr) {
     for (const entry of group) {
       // entry.group = "Group A" → strip prefix
-      const groupLetter = (entry.group as string)?.replace(/^Group\s*/i, '').trim();
-      // Skip the "Ranking of third-placed teams" pseudo-group that api-football includes
+      const rawGroup  = (entry.group as string) ?? '';
+      const groupLetter = rawGroup.replace(/^Group\s*/i, '').trim();
+
+      // "Ranking of third-placed teams" → store with special group_name BEST_3RDS
+      if (rawGroup.toLowerCase().includes('third')) {
+        rows.push({
+          group_name:    'BEST_3RDS',
+          rank:          entry.rank,
+          team:          normalize(entry.team.name),
+          played:        entry.all.played,
+          won:           entry.all.win,
+          drawn:         entry.all.draw,
+          lost:          entry.all.lose,
+          goals_for:     entry.all.goals.for,
+          goals_against: entry.all.goals.against,
+          goal_diff:     entry.goalsDiff,
+          points:        entry.points,
+          form:          entry.form ?? null,
+          updated_at:    new Date().toISOString(),
+        });
+        continue;
+      }
+
+      // Skip anything that isn't a single-letter real group (A-L)
       if (!groupLetter || groupLetter.length > 1) continue;
 
       rows.push({
