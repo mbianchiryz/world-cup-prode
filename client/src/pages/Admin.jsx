@@ -63,16 +63,18 @@ export default function Admin() {
         </h2>
       </div>
 
-      {/* Summary stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
+      {/* Summary stats — 2×2 on mobile, 4×1 on desktop */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}
+           className="mob-2col">
         <StatCard value={totalUsers}     label="TOTAL PLAYERS"      color="var(--ink)" />
         <StatCard value={activePickers}  label="ACTIVE IN PRODE"    color="var(--green)" />
         <StatCard value={bracketCount}   label="BRACKET STARTED"    color="var(--blue)" />
         <StatCard value={lockedBrackets} label="BRACKET LOCKED"      color="var(--yellow)" />
       </div>
 
-      {/* Player table */}
-      <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+      {/* Player table — horizontal scroll on mobile */}
+      <div style={{ overflowX: 'auto' }}>
+      <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden', minWidth: 680 }}>
         {/* Header */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
@@ -156,6 +158,7 @@ export default function Admin() {
             No players yet.
           </div>
         )}
+      </div>
       </div>
     </div>
   );

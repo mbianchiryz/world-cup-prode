@@ -876,6 +876,12 @@ function Landing({ onStart, onViewAll, onReset, locked, hasPicks, hasLockedBrack
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function Bracket() {
   const locked = isBracketLocked();
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
 
   const [view, setView]               = useState('landing'); // landing | groups | thirds | knockout
   const [groupIndex, setGroupIndex]   = useState(0);
@@ -1067,7 +1073,12 @@ export default function Bracket() {
       )}
 
       {view === 'groups' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 260px', gap: 32, alignItems: 'start' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 260px',
+          gap: isMobile ? 24 : 32,
+          alignItems: 'start',
+        }}>
           <GroupRanker
             groupLetter={currentGroup}
             ranking={currentRanking}
@@ -1080,11 +1091,13 @@ export default function Bracket() {
             groupIndex={groupIndex}
             locked={locked}
           />
-          {/* Side summary */}
-          <div>
-            <div className="label" style={{ color: 'var(--muted)', marginBottom: 10 }}>YOUR GROUP PICKS</div>
-            <GroupSummary groupPicks={groupPicks} onEdit={g => setGroupIndex(GROUPS_LIST.indexOf(g))} locked={locked} />
-          </div>
+          {/* Side summary — hidden on mobile to avoid overlap */}
+          {!isMobile && (
+            <div>
+              <div className="label" style={{ color: 'var(--muted)', marginBottom: 10 }}>YOUR GROUP PICKS</div>
+              <GroupSummary groupPicks={groupPicks} onEdit={g => setGroupIndex(GROUPS_LIST.indexOf(g))} locked={locked} />
+            </div>
+          )}
         </div>
       )}
 
