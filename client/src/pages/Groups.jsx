@@ -122,9 +122,6 @@ function GroupCard({ group }) {
             <span style={{ color: 'var(--muted)' }}>Best 3rd</span>
           </span>
         </div>
-        <div className="label" style={{ color: 'var(--muted)', fontSize: 9, display: 'flex', alignItems: 'center', gap: 4 }}>
-          FIXTURES {ARROW}
-        </div>
       </div>
     </div>
   );
@@ -187,9 +184,6 @@ export default function Groups() {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--muted)' }}>
           <span style={{ width: 11, height: 11, background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 3, display: 'inline-block' }} />
           Eliminated
-        </span>
-        <span className="label" style={{ marginLeft: 'auto', color: 'var(--muted)' }}>
-          P · W · D · L · GD · PTS
         </span>
       </div>
 
