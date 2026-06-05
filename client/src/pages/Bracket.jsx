@@ -709,7 +709,7 @@ function BracketPlayerModal({ bracket, onClose }) {
 }
 
 // ── Landing / intro ───────────────────────────────────────────────────────────
-function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
+function Landing({ onStart, onViewAll, onReset, locked, hasPicks, hasLockedBrackets }) {
   const [showScoring, setShowScoring] = useState(false);
 
   const steps = [
@@ -836,6 +836,21 @@ function Landing({ onStart, onViewAll, locked, hasPicks, hasLockedBrackets }) {
             {locked
               ? (hasPicks ? '→ View my locked bracket' : '🔒 You didn\'t submit a bracket')
               : (hasPicks ? 'Continue my bracket →' : 'Start bracket challenge →')}
+          </button>
+        )}
+
+        {/* Reset bracket — only before lock and when there's something to reset */}
+        {!locked && hasPicks && (
+          <button
+            onClick={onReset}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              border: '1.5px solid var(--line)', color: 'var(--muted)',
+              borderRadius: 'var(--r)', fontWeight: 600, fontSize: 14, padding: '13px',
+            }}
+          >
+            ↺ Reset and start over
           </button>
         )}
 
@@ -982,6 +997,18 @@ export default function Bracket() {
     await persist({ group_picks: groupPicks, third_place_picks: thirdPicks, knockout_picks: knockoutPicks, phase: 'complete', locked: true });
   }
 
+  async function handleReset() {
+    if (!window.confirm('Reset your bracket? All your picks will be cleared and you can start over.')) return;
+    const defaults = defaultGroupPicks();
+    setGroupPicks(defaults);
+    setThirdPicks([]);
+    setKnockout({});
+    setPhase('groups');
+    setGroupIndex(0);
+    setView('groups');
+    await persist({ group_picks: defaults, third_place_picks: [], knockout_picks: {}, phase: 'groups', locked: false });
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const currentGroup = GROUPS_LIST[groupIndex];
   const currentRanking = groupPicks[currentGroup] || GROUPS[currentGroup] || [];
@@ -1019,6 +1046,7 @@ export default function Bracket() {
         <Landing
           onStart={() => setView(phase === 'knockout' || phase === 'complete' ? 'knockout' : phase === 'thirds' ? 'thirds' : 'groups')}
           onViewAll={() => setView('leaderboard')}
+          onReset={handleReset}
           locked={locked}
           hasPicks={hasPicks}
           hasLockedBrackets={locked && allBrackets.length > 0}
