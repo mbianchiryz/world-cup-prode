@@ -133,14 +133,6 @@ export default function Login() {
       </div>
 
       {/* Scoring hint */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        marginTop: 28, color: '#6B6B70',
-        fontSize: 12, textAlign: 'center', maxWidth: 420,
-        fontFamily: 'var(--mono)', letterSpacing: '0.04em',
-      }}>
-        +7 EXACT · +5 WINNER + ONE TEAM · +3 WINNER · +2 ONE TEAM · +50 CHAMPION
-      </div>
     </div>
   );
 }
