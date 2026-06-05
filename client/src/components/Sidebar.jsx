@@ -34,7 +34,7 @@ function IBracket(s = 18) {
 
 const LINKS = [
   { href: '/',            label: 'Home',      icon: IHome,    color: 'var(--ink)'    },
-  { href: '/predictions', label: 'Picks',     icon: ITarget,  color: 'var(--red)'    },
+  { href: '/predictions', label: 'Predictions', icon: ITarget,  color: 'var(--red)'    },
   { href: '/bracket',     label: 'Bracket',   icon: IBracket, color: 'var(--yellow)' },
   { href: '/groups',      label: 'Groups',    icon: IGrid,    color: 'var(--blue)'   },
   { href: '/leaderboard', label: 'Standings', icon: IBars,    color: 'var(--green)'  },
