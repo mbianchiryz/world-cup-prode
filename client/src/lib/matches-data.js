@@ -63,6 +63,7 @@ export const TEAM_FLAGS = {
   'Iran':                                   '🇮🇷',
   'DR Congo':                               '🇨🇩',
   'Cape Verde':                             '🇨🇻',
+  'Cape Verde Islands':                     '🇨🇻',
   'Ivory Coast':                            '🇨🇮',
   "Cote d'Ivoire":                          '🇨🇮',
   'Curacao':                                '🇨🇼',
@@ -93,7 +94,7 @@ export const TEAM_GROUP = {
   'Iran': 'G',
   // H
   'Saudi Arabia': 'H', 'Uruguay': 'H', 'Spain': 'H', 'Cabo Verde': 'H',
-  'Cape Verde': 'H',
+  'Cape Verde': 'H', 'Cape Verde Islands': 'H',
   // I
   'France': 'I', 'Senegal': 'I', 'Iraq': 'I', 'Norway': 'I',
   // J
@@ -167,6 +168,7 @@ export const TEAM_ABBR = {
   'Iran':                      'IRN',
   'DR Congo':                  'COD',
   'Cape Verde':                'CPV',
+  'Cape Verde Islands':        'CPV',
   'Ivory Coast':               'CIV',
   "Cote d'Ivoire":             'CIV',
   'Curacao':                   'CUW',
