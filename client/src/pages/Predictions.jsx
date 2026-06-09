@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -125,21 +125,27 @@ function MatchCard({ match, pred, onSave }) {
 
   const [h, setH] = useState(pred?.home_score ?? '');
   const [a, setA] = useState(pred?.away_score ?? '');
-  const [saved, setSaved] = useState(false);
+  // saved = true when current h/a matches what's in DB; false = unsaved changes
+  const [saved, setSaved] = useState(() => pred?.home_score !== undefined && pred?.home_score !== null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setH(pred?.home_score ?? '');
     setA(pred?.away_score ?? '');
+    setSaved(pred?.home_score !== undefined && pred?.home_score !== null);
   }, [pred?.home_score, pred?.away_score]);
+
+  function handleChange(setter, val) {
+    setter(val);
+    setSaved(false); // mark as unsaved whenever score changes
+  }
 
   async function handleSave() {
     if (h === '' || a === '') return;
     setSaving(true);
     try {
       await onSave(match.id, Number(h), Number(a));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+      setSaved(true); // persistent — stays green until user edits again
     } catch (e) { alert(e.message); }
     finally { setSaving(false); }
   }
@@ -263,9 +269,9 @@ function MatchCard({ match, pred, onSave }) {
 
         {/* Score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <ScoreBox value={match.finished ? match.home_score : h} onChange={setH} isResult={match.finished} />
+          <ScoreBox value={match.finished ? match.home_score : h} onChange={v => handleChange(setH, v)} isResult={match.finished} />
           <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
-          <ScoreBox value={match.finished ? match.away_score : a} onChange={setA} isResult={match.finished} />
+          <ScoreBox value={match.finished ? match.away_score : a} onChange={v => handleChange(setA, v)} isResult={match.finished} />
         </div>
 
         {/* Away */}
@@ -1049,6 +1055,27 @@ export default function Predictions() {
 
   // Initial load — show spinner
   useEffect(() => { loadAll(true); }, [loadAll]);
+
+  // Warn when leaving the page if there are unsaved predictions
+  // (tracks via a ref so we can check inside the event listener)
+  const hasUnsavedRef = useRef(false);
+  // We can't easily know per-card state from the parent, so we use a simpler
+  // heuristic: if there are any editable matches (not locked, not finished),
+  // show the warning. Users see the green "Saved" indicators to know what's safe.
+  useEffect(() => {
+    function handleBeforeUnload(e) {
+      const editableCount = matches.filter(m =>
+        !m.finished && !isLocked(m.match_time) &&
+        !isPlaceholder(m.home_team) && !isPlaceholder(m.away_team)
+      ).length;
+      if (editableCount > 0) {
+        e.preventDefault();
+        e.returnValue = 'You may have unsaved predictions. Are you sure you want to leave?';
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [matches]);
   // Background refresh every 60s — silent, no spinner, no UI reset
   useEffect(() => {
     const i = setInterval(() => loadAll(false), 60_000);
