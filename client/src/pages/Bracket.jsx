@@ -327,12 +327,21 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
     setFa(knockoutPicks['final_away'] ?? '');
   }, [knockoutPicks['final_home'], knockoutPicks['final_away']]);
 
+  const [scoreSaved, setScoreSaved] = useState(false);
+
   function handleScoreChange(isHome, raw) {
     const v = raw === '' ? '' : Math.max(0, Math.min(20, Number(raw)));
     if (isHome) setFh(v); else setFa(v);
+    setScoreSaved(false); // reset saved state when score changes
   }
   function handleScoreBlur() {
     if (fh !== '' && fa !== '') onFinalScore?.(Number(fh), Number(fa));
+  }
+  function handleSaveScore() {
+    if (fh === '' || fa === '') return;
+    onFinalScore?.(Number(fh), Number(fa));
+    setScoreSaved(true);
+    setTimeout(() => setScoreSaved(false), 3000);
   }
 
   // SVG connector lines for every R16+ match
@@ -479,46 +488,71 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
               ))}
             </div>
           ))}
+
+          {/* Save score button — positioned just below the Final card */}
+          {knockoutPicks['final'] && fh !== '' && fa !== '' && !locked && (
+            <div style={{
+              position: 'absolute',
+              left: 4 * COL_W,
+              top: mTop(0, 16) + CARD_H + 6,
+              zIndex: 2,
+            }}>
+              <button
+                onClick={handleSaveScore}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: scoreSaved ? 'var(--green)' : 'var(--yellow)',
+                  color: 'var(--ink)',
+                  borderRadius: 6, fontWeight: 700, fontSize: 11,
+                  padding: '5px 10px',
+                  transition: 'background 0.2s',
+                  width: CARD_W, boxSizing: 'border-box', justifyContent: 'center',
+                }}>
+                {scoreSaved ? '✓ Score saved!' : `Save ${fh} – ${fa} ✓`}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom actions */}
+      {/* Toast notification */}
+      {scoreSaved && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 999,
+          background: 'var(--green)', color: '#fff',
+          borderRadius: 'var(--r)', padding: '12px 24px',
+          fontWeight: 700, fontSize: 14,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          animation: 'fade-up 0.3s ease',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          ✓ Final score confirmed: {fh} – {fa}
+        </div>
+      )}
+
+      {/* Bottom actions — simplified */}
       <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={onBack}
           style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           ← Back to 3rd picks
         </button>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Save final score button — visible when both scores are filled */}
-          {knockoutPicks['final'] && fh !== '' && fa !== '' && !locked && (
-            <button
-              onClick={handleScoreBlur}
-              style={{
-                all: 'unset', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--ink)', color: 'var(--yellow)',
-                border: '1.5px solid var(--ink)',
-                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '12px 18px',
-              }}>
-              Save final score {fh} – {fa} ✓
-            </button>
-          )}
-          {!locked && isComplete ? (
-            <button onClick={onLock} disabled={saving}
-              style={{
-                all: 'unset', cursor: saving ? 'default' : 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--green)', color: '#fff',
-                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '12px 22px',
-              }}>
-              {saving ? 'Saving…' : '🔒 Lock in my bracket'}
-            </button>
-          ) : !locked ? (
-            <div className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>
-              Click a team to advance them → fill all rounds to lock
-            </div>
-          ) : null}
-        </div>
+        {!locked && isComplete ? (
+          <button onClick={onLock} disabled={saving}
+            style={{
+              all: 'unset', cursor: saving ? 'default' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'var(--green)', color: '#fff',
+              borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '12px 22px',
+            }}>
+            {saving ? 'Saving…' : '🔒 Lock in my bracket'}
+          </button>
+        ) : !locked ? (
+          <div className="label" style={{ color: 'var(--muted)', fontSize: 10 }}>
+            Click a team to advance them → fill all rounds to lock
+          </div>
+        ) : null}
       </div>
     </div>
   );
