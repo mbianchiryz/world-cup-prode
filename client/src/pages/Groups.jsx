@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getGroupStandings } from '@/lib/supabase-db';
 import { getFlag } from '@/lib/matches-data';
+import Flag from '@/components/Flag';
 
 const ARROW = (
   <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -84,7 +85,7 @@ function GroupCard({ group }) {
               <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>{i + 1}</div>
               {/* Team */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{row.flag || getFlag(row.team)}</span>
+                <Flag team={row.team} size={16} />
                 <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {row.team}
                 </span>
@@ -255,7 +256,7 @@ export default function Groups() {
                     <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>{s.rank}</div>
                     {/* Team */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                      <span style={{ fontSize: 15, flexShrink: 0 }}>{s.flag || getFlag(s.team)}</span>
+                      <Flag team={s.team} size={16} />
                       <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {s.team}
                       </span>

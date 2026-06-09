@@ -187,6 +187,34 @@ export function getFlag(teamName) {
   return TEAM_FLAGS[teamName] ?? '';
 }
 
+// ── Flag image codes (ISO 3166-1 alpha-2 for flagcdn.com) ─────────────────────
+export const TEAM_FLAG_CODE = {
+  'Mexico': 'mx', 'South Africa': 'za', 'Korea Republic': 'kr', 'Czechia': 'cz',
+  'Canada': 'ca', 'Bosnia and Herzegovina': 'ba', 'Qatar': 'qa', 'Switzerland': 'ch',
+  'Haiti': 'ht', 'Scotland': 'gb-sct', 'Brazil': 'br', 'Morocco': 'ma',
+  'USA': 'us', 'Paraguay': 'py', 'Australia': 'au', 'Türkiye': 'tr',
+  "Côte d'Ivoire": 'ci', 'Ecuador': 'ec', 'Germany': 'de', 'Curaçao': 'cw',
+  'Netherlands': 'nl', 'Japan': 'jp', 'Sweden': 'se', 'Tunisia': 'tn',
+  'Saudi Arabia': 'sa', 'Uruguay': 'uy', 'Spain': 'es', 'Cabo Verde': 'cv',
+  'IR Iran': 'ir', 'New Zealand': 'nz', 'Belgium': 'be', 'Egypt': 'eg',
+  'France': 'fr', 'Senegal': 'sn', 'Iraq': 'iq', 'Norway': 'no',
+  'Argentina': 'ar', 'Algeria': 'dz', 'Austria': 'at', 'Jordan': 'jo',
+  'Ghana': 'gh', 'Panama': 'pa', 'England': 'gb-eng', 'Croatia': 'hr',
+  'Portugal': 'pt', 'Uzbekistan': 'uz', 'Colombia': 'co', 'Congo DR': 'cd',
+  // api-football alternate spellings
+  'South Korea': 'kr', 'Czech Republic': 'cz', 'Turkey': 'tr', 'Iran': 'ir',
+  'DR Congo': 'cd', 'Cape Verde': 'cv', 'Cape Verde Islands': 'cv',
+  "Cote d'Ivoire": 'ci', 'Ivory Coast': 'ci', 'Curacao': 'cw',
+  'Bosnia & Herzegovina': 'ba', 'United States': 'us',
+};
+
+/** Returns the flagcdn.com image URL for a team, or null if unknown */
+export function getFlagUrl(teamName) {
+  const code = TEAM_FLAG_CODE[teamName];
+  if (!code) return null;
+  return `https://flagcdn.com/w40/${code}.png`;
+}
+
 // ── Groups (official draw, Dec 5 2025) ───────────────────────────────────────
 // All 48 teams confirmed (playoffs concluded March 2026)
 export const GROUPS = {

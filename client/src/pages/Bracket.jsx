@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getFlag, getAbbr, GROUPS } from '@/lib/matches-data';
+import Flag from '@/components/Flag';
 import { getBracketChallenge, saveBracketChallenge, getBracketLeaderboard } from '@/lib/supabase-db';
 import {
   GROUPS_LIST, BRACKET_LOCK, isBracketLocked,
@@ -81,7 +82,7 @@ function GroupRanker({ groupLetter, ranking, onChange, onNext, onPrev, groupInde
             </div>
             {/* Team */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>{getFlag(team)}</span>
+              <Flag team={team} size={24} />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{team}</div>
                 <div className="label" style={{ color: LABEL_COLORS[idx], fontSize: 9, marginTop: 1 }}>{LABELS[idx]}</div>
@@ -205,7 +206,7 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, onReor
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: 'var(--display)', fontSize: 11,
               }}>{group}</div>
-              <span style={{ fontSize: 22 }}>{getFlag(team)}</span>
+              <Flag team={team} size={24} />
               <span style={{
                 fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '0.06em', color: isSelected ? '#fff' : 'var(--ink)',
@@ -243,7 +244,7 @@ function ThirdsPicker({ groupPicks, selected, onToggle, onFinish, onBack, onReor
                   {idx + 1}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>{getFlag(team)}</span>
+                  <Flag team={team} size={20} />
                   <span style={{ fontWeight: 600, fontSize: 13 }}>{team}</span>
                 </div>
                 {!locked && (
@@ -416,7 +417,7 @@ function BracketTree({ groupPicks, thirdPicks, knockoutPicks, onPick, onFinalSco
               onMouseEnter={e => { if (canPick) e.currentTarget.style.background = sel ? (isFinal ? '#f5c000' : 'var(--ink-2)') : 'var(--bg-2)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = sel ? (isFinal ? 'var(--yellow)' : 'var(--ink)') : 'transparent'; }}
             >
-              <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{team ? getFlag(team) : ''}</span>
+              {team ? <Flag team={team} size={16} /> : <span style={{ width: 21, flexShrink: 0 }} />}
               <span style={{
                 fontFamily: 'var(--mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em',
                 color: sel ? (isFinal ? 'var(--ink)' : '#fff') : (team ? (isFinal ? 'var(--bg)' : 'var(--ink)') : 'var(--muted)'),
@@ -584,7 +585,7 @@ function GroupSummary({ groupPicks, onEdit, locked }) {
             {ranking.slice(0,2).map((team, i) => (
               <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', width: 12 }}>{i+1}</span>
-                <span style={{ fontSize: 14 }}>{getFlag(team)}</span>
+                <Flag team={team} size={16} />
                 <span style={{ fontSize: 12, fontWeight: 600 }}>{team}</span>
               </div>
             ))}
@@ -659,7 +660,7 @@ function BracketLeaderboard({ brackets, onSelect, currentUserId }) {
             {/* Champion */}
             {champion ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 22 }}>{getFlag(champion)}</span>
+                <Flag team={champion} size={24} />
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
                   color: isMe ? 'var(--yellow)' : 'var(--ink)' }}>{getAbbr(champion)}</span>
               </div>
@@ -719,7 +720,7 @@ function BracketPlayerModal({ bracket, onClose }) {
             {champion && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8,
                 background: 'var(--yellow)', borderRadius: 8, padding: '6px 12px' }}>
-                <span style={{ fontSize: 22 }}>{getFlag(champion)}</span>
+                <Flag team={champion} size={24} />
                 <div>
                   <div className="label" style={{ fontSize: 8, color: 'var(--ink)' }}>CHAMPION</div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>

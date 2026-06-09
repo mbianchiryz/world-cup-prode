@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
+import Flag from '@/components/Flag';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -261,7 +262,7 @@ function MatchCard({ match, pred, onSave }) {
       }}>
         {/* Home */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
-          <span style={{ fontSize: 30, lineHeight: 1 }}>{getFlag(match.home_team)}</span>
+          <Flag team={match.home_team} size={28} />
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink)' }}>
             {isPlaceholder(match.home_team) ? match.home_team : getAbbr(match.home_team)}
           </span>
@@ -276,7 +277,7 @@ function MatchCard({ match, pred, onSave }) {
 
         {/* Away */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
-          <span style={{ fontSize: 30, lineHeight: 1 }}>{getFlag(match.away_team)}</span>
+          <Flag team={match.away_team} size={28} />
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink)' }}>
             {isPlaceholder(match.away_team) ? match.away_team : getAbbr(match.away_team)}
           </span>
@@ -359,7 +360,7 @@ function BracketTile({ match, pred, onSave }) {
         fontWeight: homeWin ? 700 : 500,
         borderBottom: '1px solid var(--line)',
       }}>
-        <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(match.home_team)}</span>
+        <Flag team={match.home_team} size={16} />
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {match.home_team === 'TBD' ? '?' : match.home_team}
         </span>
@@ -379,7 +380,7 @@ function BracketTile({ match, pred, onSave }) {
         padding: '8px 10px',
         fontWeight: awayWin ? 700 : 500,
       }}>
-        <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(match.away_team)}</span>
+        <Flag team={match.away_team} size={16} />
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {match.away_team === 'TBD' ? '?' : match.away_team}
         </span>
@@ -892,7 +893,7 @@ function ChampionSection({ champ, onSave }) {
                 {champ.champion ? 'TOURNAMENT CHAMPION' : 'YOUR PICK'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.02em' }}>
-                <span style={{ fontSize: 28 }}>{getFlag(current)}</span>
+                <Flag team={current} size={28} />
                 {current.toUpperCase()}
               </div>
             </div>
@@ -935,7 +936,7 @@ function ChampionSection({ champ, onSave }) {
                 return (
                   <div key={row.team} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 130, flexShrink: 0 }}>
-                      <span style={{ fontSize: 16 }}>{getFlag(row.team)}</span>
+                      <Flag team={row.team} size={16} />
                       <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500 }}>{row.team}</span>
                     </div>
                     <div style={{ flex: 1, height: 6, background: 'var(--bg-2)', borderRadius: 999 }}>
@@ -1011,7 +1012,7 @@ function TeamBtn({ team, selected, onClick }) {
         overflow: 'hidden',
       }}
     >
-      <span style={{ fontSize: 15, flexShrink: 0 }}>{getFlag(team)}</span>
+      <Flag team={team} size={16} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
     </button>
   );

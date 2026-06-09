@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFlag } from '@/lib/matches-data';
+import Flag from '@/components/Flag';
 import { getMatches, getLeaderboard } from '@/lib/supabase-db';
 
 // ── Countdown hook ────────────────────────────────────────────────────────────
@@ -185,14 +186,14 @@ function Hero({ nextMatch, onNavigate }) {
             {/* Teams */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                <span style={{ fontSize: 36 }}>{getFlag(nextMatch.home_team)}</span>
+                <Flag team={nextMatch.home_team} size={32} />
                 <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
                   {nextMatch.home_team.toUpperCase()}
                 </span>
               </div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <span style={{ fontSize: 36 }}>{getFlag(nextMatch.away_team)}</span>
+                <Flag team={nextMatch.away_team} size={32} />
                 <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
                   {nextMatch.away_team.toUpperCase()}
                 </span>
@@ -313,7 +314,7 @@ function RecentResults({ matches }) {
                   {m.group_name ? `GR ${m.group_name}` : '–'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: homeWin ? 700 : 500 }}>
-                  <span style={{ fontSize: 18 }}>{getFlag(m.home_team)}</span>
+                  <Flag team={m.home_team} size={20} />
                   <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.home_team}</span>
                 </div>
                 <div style={{
@@ -325,7 +326,7 @@ function RecentResults({ matches }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end', fontWeight: awayWin ? 700 : 500 }}>
                   <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{m.away_team}</span>
-                  <span style={{ fontSize: 18 }}>{getFlag(m.away_team)}</span>
+                  <Flag team={m.away_team} size={20} />
                 </div>
                 <div className="label" style={{ color: 'var(--muted)', textAlign: 'right', fontSize: 9.5 }}>
                   {fmtDateShort(m.match_time)}

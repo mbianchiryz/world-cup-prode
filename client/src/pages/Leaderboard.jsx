@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getFlag, getAbbr } from '@/lib/matches-data';
+import Flag from '@/components/Flag';
 import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings, getThirdPlaceRanking } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase';
 import { calcBracketScore } from '@/lib/bracket-data';
@@ -111,7 +112,7 @@ function Podium({ players, onSelect, showChampion }) {
               >
                 {showChampion && o.p.pickedChampion && (
                   <div className="label" style={{ color: 'var(--muted)', marginBottom: 2 }}>
-                    {getFlag(o.p.pickedChampion)} {o.p.pickedChampion.toUpperCase()} TO WIN
+                    <Flag team={o.p.pickedChampion} size={18} /> {o.p.pickedChampion.toUpperCase()} TO WIN
                   </div>
                 )}
                 <div className="podium-name" style={{ fontFamily: 'var(--display)', fontSize: 20, letterSpacing: '-0.02em', marginTop: 2, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -283,7 +284,7 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         <div className="lb-col-champion" style={{ textAlign: 'center', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', minWidth: 0 }}>
           {p.pickedChampion ? (
             <>
-              <span style={{ fontSize: 14, flexShrink: 0 }}>{getFlag(p.pickedChampion)}</span>
+              <Flag team={p.pickedChampion} size={18} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.pickedChampion}</span>
             </>
           ) : (
@@ -351,7 +352,7 @@ function PlayerModal({ player, onClose, showChampion }) {
             {showChampion && player.pickedChampion && (
               <div style={{ fontSize: 13, color: '#8B8B90' }}>
                 Champion pick: <b style={{ color: 'var(--bg)' }}>
-                  {getFlag(player.pickedChampion)} {player.pickedChampion}
+                  <Flag team={player.pickedChampion} size={18} /> {player.pickedChampion}
                 </b>
               </div>
             )}
@@ -443,7 +444,7 @@ function PickRow({ pick, last }) {
       <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>{stageLabel}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.home_team}</span>
-        <span style={{ fontSize: 18 }}>{getFlag(pick.home_team)}</span>
+        <Flag team={pick.home_team} size={20} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 16 }}>
@@ -458,7 +459,7 @@ function PickRow({ pick, last }) {
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ fontSize: 18 }}>{getFlag(pick.away_team)}</span>
+        <Flag team={pick.away_team} size={20} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.away_team}</span>
       </div>
       <div style={{
@@ -520,7 +521,7 @@ function BracketTable({ brackets, currentUserId }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {champion ? (
                 <>
-                  <span style={{ fontSize: 18 }}>{getFlag(champion)}</span>
+                  <Flag team={champion} size={20} />
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
                     color: 'var(--ink)' }}>{getAbbr(champion)}</span>
                 </>
