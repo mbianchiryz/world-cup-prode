@@ -53,7 +53,7 @@ const SCORING = [
   { pts: '+5', text: 'Correct result + one team\'s goals' },
   { pts: '+3', text: 'Correct win / draw / loss' },
   { pts: '+2', text: 'One team\'s goals (wrong result)' },
-  { pts: '+50', text: 'Pick the tournament champion' },
+  { pts: '+30', text: 'Pick the tournament champion' },
 ];
 const SCORING_COLORS = ['var(--green)', 'var(--cyan)', 'var(--blue)', 'var(--orange)', 'var(--yellow)'];
 

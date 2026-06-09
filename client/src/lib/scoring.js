@@ -71,7 +71,7 @@ export function calcScore({ predictions, matches, championPred, champion }) {
     if (isCorrectResult(pred, match)) correct++;
   }
 
-  if (champion && championPred && championPred.team === champion) championPts = 50;
+  if (champion && championPred && championPred.team === champion) championPts = 30;
 
   return { total: group + knockout + championPts, group, knockout, champion: championPts, exact, result, correct, predicted };
 }
