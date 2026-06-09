@@ -77,7 +77,7 @@ export default function Admin() {
       <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden', minWidth: 680 }}>
         {/* Header */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
+          display: 'grid', gridTemplateColumns: '1fr 180px 100px 160px 140px',
           gap: 8, padding: '10px 16px',
           background: 'var(--ink)', color: 'var(--bg)',
         }} className="label">
@@ -85,7 +85,6 @@ export default function Admin() {
           <div style={{ textAlign: 'center' }}>EMAIL</div>
           <div style={{ textAlign: 'center' }}>PICKS</div>
           <div style={{ textAlign: 'center' }}>BRACKET</div>
-          <div style={{ textAlign: 'center' }}>LOCKED</div>
           <div style={{ textAlign: 'center' }}>LAST LOGIN</div>
         </div>
 
@@ -100,7 +99,7 @@ export default function Admin() {
 
           return (
             <div key={s.user_id} className="row-hover" style={{
-              display: 'grid', gridTemplateColumns: '1fr 180px 100px 140px 110px 140px',
+              display: 'grid', gridTemplateColumns: '1fr 180px 100px 160px 140px',
               gap: 8, padding: '12px 16px', alignItems: 'center',
               borderBottom: '1px solid var(--line)',
             }}>
@@ -128,15 +127,6 @@ export default function Admin() {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: bracketColor }}>
                   {bracketLabel}
                 </span>
-              </div>
-
-              {/* Lock status */}
-              <div style={{ textAlign: 'center' }}>
-                {s.bracket_locked ? (
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>🔒 Yes</span>
-                ) : (
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>–</span>
-                )}
               </div>
 
               {/* Last login */}
