@@ -475,7 +475,7 @@ function PickRow({ pick, last }) {
 }
 
 // ── Bracket tab table ─────────────────────────────────────────────────────────
-function BracketTable({ brackets, currentUserId }) {
+function BracketTable({ brackets, currentUserId, showChampion }) {
   const sorted = [...brackets].sort((a, b) =>
     (b.score ?? 0) - (a.score ?? 0) || a.name.localeCompare(b.name)
   );
@@ -492,12 +492,12 @@ function BracketTable({ brackets, currentUserId }) {
     <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
+        display: 'grid', gridTemplateColumns: showChampion ? '1fr 160px 120px 80px' : '1fr 120px 80px',
         gap: 8, padding: '10px 16px',
         background: 'var(--ink)', color: 'var(--bg)',
       }} className="label">
         <div>PLAYER</div>
-        <div style={{ textAlign: 'center' }}>CHAMPION</div>
+        {showChampion && <div style={{ textAlign: 'center' }}>CHAMPION</div>}
         <div style={{ textAlign: 'center' }}>STATUS</div>
         <div style={{ textAlign: 'right' }}>SCORE</div>
       </div>
@@ -508,7 +508,7 @@ function BracketTable({ brackets, currentUserId }) {
         const champion = b.knockoutPicks?.['final'];
         return (
           <div key={b.userId} className="row-hover" style={{
-            display: 'grid', gridTemplateColumns: '1fr 160px 120px 80px',
+            display: 'grid', gridTemplateColumns: showChampion ? '1fr 160px 120px 80px' : '1fr 120px 80px',
             gap: 8, padding: '12px 16px', alignItems: 'center',
             borderBottom: '1px solid var(--line)',
             background: 'transparent',
@@ -518,6 +518,7 @@ function BracketTable({ brackets, currentUserId }) {
               {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9,
                 color: 'var(--muted)', fontWeight: 500 }}>YOU</span>}
             </div>
+            {showChampion && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {champion ? (
                 <>
@@ -529,6 +530,7 @@ function BracketTable({ brackets, currentUserId }) {
                 <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11 }}>–</span>
               )}
             </div>
+            )}
             <div style={{ textAlign: 'center' }}>
               {isComplete ? (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
@@ -810,7 +812,7 @@ export default function Leaderboard() {
             </div>}
           </div>
 
-          <BracketTable brackets={scoredBracketData} currentUserId={currentUserId} />
+          <BracketTable brackets={scoredBracketData} currentUserId={currentUserId} showChampion={tournamentStarted} />
         </>
       )}
 
