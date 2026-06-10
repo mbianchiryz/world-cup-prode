@@ -90,8 +90,9 @@ export default function Admin() {
 
         {stats.map(s => {
           const hasPicks     = s.prediction_count > 0;
-          const bracketColor = s.bracket_locked ? 'var(--green)' : s.has_bracket ? 'var(--blue)' : 'var(--muted)';
-          const bracketLabel = s.bracket_locked ? 'Locked ✓' : s.has_bracket ? 'In progress' : '–';
+          const isComplete   = s.bracket_complete || s.bracket_locked;
+          const bracketColor = isComplete ? 'var(--green)' : s.has_bracket ? 'var(--blue)' : 'var(--muted)';
+          const bracketLabel = isComplete ? 'Complete ✓' : s.has_bracket ? 'In progress' : '–';
           const lastLogin    = s.last_login
             ? new Date(s.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
             : '–';
