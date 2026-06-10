@@ -1,4 +1,30 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+
+// ── Error Boundary — catches render crashes on tab switches ───────────────────
+class SectionErrorBoundary extends React.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.1em', marginBottom: 12 }}>
+            Something went wrong loading this section.
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{
+              all: 'unset', cursor: 'pointer', fontWeight: 700, fontSize: 13,
+              background: 'var(--ink)', color: '#fff',
+              padding: '8px 18px', borderRadius: 'var(--r)',
+            }}
+          >Reload page</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
@@ -120,7 +146,7 @@ function CountdownBadge({ matchTime, finished }) {
 }
 
 // ── MatchCard ─────────────────────────────────────────────────────────────────
-function MatchCard({ match, pred, onSave }) {
+function MatchCard({ match, pred, onSave, syncAll = 0 }) {
   const locked  = isLocked(match.match_time);
   const canEdit = !match.finished && !locked && !isPlaceholder(match.home_team) && !isPlaceholder(match.away_team);
 
@@ -138,15 +164,22 @@ function MatchCard({ match, pred, onSave }) {
 
   function handleChange(setter, val) {
     setter(val);
-    setSaved(false); // mark as unsaved whenever score changes
+    setSaved(false);
   }
+
+  // Trigger save when parent requests "Save All"
+  useEffect(() => {
+    if (syncAll > 0 && canEdit && !saved && h !== '' && a !== '') {
+      handleSave();
+    }
+  }, [syncAll]); // eslint-disable-line
 
   async function handleSave() {
     if (h === '' || a === '') return;
     setSaving(true);
     try {
       await onSave(match.id, Number(h), Number(a));
-      setSaved(true); // persistent — stays green until user edits again
+      setSaved(true);
     } catch (e) { alert(e.message); }
     finally { setSaving(false); }
   }
@@ -617,7 +650,7 @@ function PillBtn({ active, onClick, children }) {
 }
 
 // ── Group Stage section ───────────────────────────────────────────────────────
-function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
+function GroupStageSection({ matches, preds, onSave, pendingOnly, syncAll }) {
   const [md, setMd] = useState('all');
 
   const filtered = useMemo(() => {
@@ -676,7 +709,7 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {groupMatches.map((m) => (
-                  <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+                  <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} syncAll={syncAll} />
                 ))}
               </div>
             </div>
@@ -685,7 +718,7 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} syncAll={syncAll} />
           ))}
         </div>
       )}
@@ -708,7 +741,7 @@ function EmptyState({ pendingOnly }) {
 }
 
 // ── Knockout section ──────────────────────────────────────────────────────────
-function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
+function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll }) {
   const [view, setView] = useState('bracket');
 
   const viewOptions = [
@@ -765,7 +798,7 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((m) => (
-            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+            <MatchCard key={m.id} match={m} pred={preds[m.id]} onSave={onSave} syncAll={syncAll} />
           ))}
         </div>
       )}
@@ -1032,8 +1065,10 @@ export default function Predictions() {
   const [preds, setPreds]     = useState({});
   const [champ, setChamp]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState('group');     // 'group' | 'knockout'
+  const [section, setSection] = useState('group');
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [syncAll, setSyncAll] = useState(0);
+  const [savingAll, setSavingAll] = useState(false);
 
   const loadAll = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
@@ -1155,20 +1190,50 @@ export default function Predictions() {
           ))}
         </div>
 
-        {section !== 'champion' && (
-          <PendingToggle active={pendingOnly} onClick={() => setPendingOnly((v) => !v)} />
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {section !== 'champion' && (
+            <PendingToggle active={pendingOnly} onClick={() => setPendingOnly((v) => !v)} />
+          )}
+          {section !== 'champion' && (
+            <button
+              onClick={async () => {
+                setSavingAll(true);
+                setSyncAll(c => c + 1);
+                await new Promise(r => setTimeout(r, 1500));
+                setSavingAll(false);
+              }}
+              disabled={savingAll}
+              style={{
+                all: 'unset', cursor: savingAll ? 'default' : 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: savingAll ? 'var(--green)' : 'var(--ink)',
+                color: '#fff',
+                borderRadius: 999, fontWeight: 700, fontSize: 12,
+                padding: '7px 14px', fontFamily: 'var(--sans)',
+                transition: 'background .15s',
+              }}
+            >
+              {savingAll ? '✓ Saving all…' : 'Save all →'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       {section === 'group' && (
-        <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
+        <SectionErrorBoundary key="group">
+          <GroupStageSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} syncAll={syncAll} />
+        </SectionErrorBoundary>
       )}
       {section === 'knockout' && (
-        <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} />
+        <SectionErrorBoundary key="knockout">
+          <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} syncAll={syncAll} />
+        </SectionErrorBoundary>
       )}
       {section === 'champion' && champ && (
-        <ChampionSection champ={champ} onSave={saveChamp} />
+        <SectionErrorBoundary key="champion">
+          <ChampionSection champ={champ} onSave={saveChamp} />
+        </SectionErrorBoundary>
       )}
     </div>
   );
