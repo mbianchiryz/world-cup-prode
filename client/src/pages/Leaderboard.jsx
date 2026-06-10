@@ -696,7 +696,7 @@ export default function Leaderboard() {
         <Podium players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
       )}
       {activeTab === 'bracket' && bracketPlayers.length >= 3 && (
-        <Podium players={bracketPlayers} onSelect={() => {}} showChampion={true} />
+        <Podium players={bracketPlayers} onSelect={() => {}} showChampion={tournamentStarted} />
       )}
 
       {/* Tab switcher — between podium and table */}
