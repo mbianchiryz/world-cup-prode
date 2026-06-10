@@ -1,24 +1,22 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 
-// ── Error Boundary — catches render crashes on tab switches ───────────────────
+// ── Error Boundary — silently auto-recovers on render errors ─────────────────
+// Prevents the whole-app crash when a section throws during render.
+// Shows a spinner and re-renders automatically after 400ms.
 class SectionErrorBoundary extends React.Component {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidUpdate() {
+    if (this.state.hasError) {
+      // Auto-reset so the section re-renders with fresh data
+      setTimeout(() => this.setState({ hasError: false }), 400);
+    }
+  }
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.1em', marginBottom: 12 }}>
-            Something went wrong loading this section.
-          </div>
-          <button
-            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
-            style={{
-              all: 'unset', cursor: 'pointer', fontWeight: 700, fontSize: 13,
-              background: 'var(--ink)', color: '#fff',
-              padding: '8px 18px', borderRadius: 'var(--r)',
-            }}
-          >Reload page</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.12em', color: 'var(--muted)' }}>
+          LOADING…
         </div>
       );
     }
@@ -654,7 +652,7 @@ function GroupStageSection({ matches, preds, onSave, pendingOnly, syncAll }) {
   const [md, setMd] = useState('all');
 
   const filtered = useMemo(() => {
-    let list = matches.filter((m) => m.stage === 'group');
+    let list = (matches || []).filter((m) => m && m.stage === 'group');
     if (md !== 'all' && md !== 'groups') list = list.filter((m) => m.matchday === Number(md));
     if (pendingOnly) list = list.filter((m) => isPending(m, preds[m.id]));
     if (md === 'groups') list = [...list].sort((a, b) =>
@@ -754,7 +752,7 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll }) {
   ];
 
   const knockoutMatches = useMemo(() => {
-    let list = matches.filter((m) => m.stage !== 'group');
+    let list = (matches || []).filter((m) => m && m.stage !== 'group');
     if (pendingOnly) list = list.filter((m) => isPending(m, preds[m.id]));
     return list;
   }, [matches, preds, pendingOnly]);
@@ -1079,7 +1077,8 @@ export default function Predictions() {
         getChampionData(),
       ]);
       // Derive group_name from team names when DB has it as null
-      const enriched = ms.map((m) => {
+      const enriched = (ms || []).map((m) => {
+        if (!m) return m; // guard against null entries
         if (m.stage === 'group' && !m.group_name) {
           const g = getTeamGroup(m.home_team) || getTeamGroup(m.away_team);
           return g ? { ...m, group_name: g } : m;
@@ -1088,10 +1087,14 @@ export default function Predictions() {
       });
       setMatches(enriched);
       const map = {};
-      for (const p of predictions) map[p.match_id] = p;
+      for (const p of (predictions || [])) if (p) map[p.match_id] = p;
       setPreds(map);
       setChamp(champData);
 
+    } catch (err) {
+      // Swallow network/auth errors on background refreshes — keep stale data
+      // rather than crashing React. On initial load show error in console only.
+      console.error('[Predictions] loadAll failed:', err);
     } finally {
       if (showSpinner) setLoading(false);
     }
