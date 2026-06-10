@@ -839,9 +839,11 @@ function ChampionSection({ champ, onSave }) {
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
-  // Top 6 from real data; fall back to empty if nobody has picked yet
-  const top6 = pickStats.slice(0, 6);
-  const maxPct = top6[0]?.pct || 1; // avoid divide-by-zero in the bar
+  // All teams with picks, sorted by pct desc
+  const allPicks = pickStats.filter(s => s.pct > 0);
+  const maxPct = allPicks[0]?.pct || 1; // avoid divide-by-zero in the bar
+  // Build a quick lookup for percentages used in the team grid
+  const pctMap = Object.fromEntries(pickStats.map(s => [s.team, s.pct]));
 
   const filtered = teams.filter((t) => t.toLowerCase().includes(search.toLowerCase()));
   const isLocked = champ.locked || !!champ.champion;
@@ -874,7 +876,7 @@ function ChampionSection({ champ, onSave }) {
         }}>26</div>
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="label" style={{ opacity: 0.6, marginBottom: 14 }}>WHO LIFTS THE TROPHY · +50 PTS</div>
+          <div className="label" style={{ opacity: 0.6, marginBottom: 14 }}>WHO LIFTS THE TROPHY · +30 PTS</div>
           <h2 style={{
             fontFamily: 'var(--display)', fontSize: 46,
             lineHeight: 0.9, letterSpacing: '-0.04em', margin: '0 0 14px',
@@ -925,13 +927,13 @@ function ChampionSection({ champ, onSave }) {
               <span style={{ marginLeft: 8, color: 'var(--green)' }}>● LIVE</span>
             )}
           </div>
-          {top6.length === 0 ? (
+          {allPicks.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>
               No picks yet — be the first!
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {top6.map((row) => {
+              {allPicks.map((row) => {
                 const isSelected = row.team === current;
                 return (
                   <div key={row.team} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -981,7 +983,7 @@ function ChampionSection({ champ, onSave }) {
               {filtered.map((t) => {
                 const isSel = t === current;
                 return (
-                  <TeamBtn key={t} team={t} selected={isSel} onClick={() => handlePick(t)} />
+                  <TeamBtn key={t} team={t} selected={isSel} onClick={() => handlePick(t)} pct={pctMap[t] ?? 0} />
                 );
               })}
             </div>
@@ -992,7 +994,7 @@ function ChampionSection({ champ, onSave }) {
   );
 }
 
-function TeamBtn({ team, selected, onClick }) {
+function TeamBtn({ team, selected, onClick, pct }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -1013,7 +1015,13 @@ function TeamBtn({ team, selected, onClick }) {
       }}
     >
       <Flag team={team} size={16} />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team}</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{team}</span>
+      {pct > 0 && (
+        <span style={{
+          fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, flexShrink: 0,
+          color: selected ? 'var(--yellow)' : 'var(--muted)',
+        }}>{pct}%</span>
+      )}
     </button>
   );
 }
