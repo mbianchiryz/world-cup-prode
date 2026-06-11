@@ -260,22 +260,22 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
                 <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 6 }}>
                   {idx === 0 ? 'UP NEXT' : 'THEN'} · {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Flag team={m.home_team} size={18} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 11, letterSpacing: '-0.02em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Flag team={m.home_team} size={24} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', fontWeight: 700 }}>
                       {m.home_team.toUpperCase()}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>VS</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 11, letterSpacing: '-0.02em', textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>VS</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', fontWeight: 700, textAlign: 'right' }}>
                       {m.away_team.toUpperCase()}
                     </span>
-                    <Flag team={m.away_team} size={18} />
+                    <Flag team={m.away_team} size={24} />
                   </div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>
                   {fmtWeekday(m.match_time)} · {fmtDateShort(m.match_time)} · {fmtTime(m.match_time)}
                 </div>
               </div>
