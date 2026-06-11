@@ -260,19 +260,19 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
                 <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 6 }}>
                   {idx === 0 ? 'UP NEXT' : 'THEN'} · {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Flag team={m.home_team} size={24} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', fontWeight: 700 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                    <Flag team={m.home_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
                       {m.home_team.toUpperCase()}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>VS</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', fontWeight: 700, textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <Flag team={m.away_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
                       {m.away_team.toUpperCase()}
                     </span>
-                    <Flag team={m.away_team} size={24} />
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>
