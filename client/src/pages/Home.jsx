@@ -574,8 +574,8 @@ export default function Home() {
         .finally(() => setLoading(false));
     }
     load();
-    // Poll every 60s so live scores update automatically
-    const id = setInterval(load, 60_000);
+    // Poll every 30s for live score updates (sync-results runs every 1 min)
+    const id = setInterval(load, 30_000);
     return () => clearInterval(id);
   }, []);
 
