@@ -4,8 +4,8 @@
  */
 import { GROUPS, TEAM_GROUP } from './matches-data';
 
-// Lock 1 hour before first kick-off (Mexico vs South Africa, Jun 11 16:00 UTC)
-export const BRACKET_LOCK = new Date('2026-06-11T15:00:00.000Z');
+// Lock 1 hour before first kick-off (Mexico vs South Africa, Jun 11 19:00 UTC / 16:00 Argentina)
+export const BRACKET_LOCK = new Date('2026-06-11T18:00:00.000Z');
 export const isBracketLocked = () => Date.now() >= BRACKET_LOCK.getTime();
 
 export const GROUPS_LIST = ['A','B','C','D','E','F','G','H','I','J','K','L'];
