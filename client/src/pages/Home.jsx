@@ -229,8 +229,22 @@ function Hero({ nextMatch, onNavigate }) {
               </div>
             )}
             {cd?.done && (
-              <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
-                ⚽ Match is live or underway
+              <div style={{ textAlign: 'center' }}>
+                {nextMatch.home_score !== null && nextMatch.away_score !== null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                      {nextMatch.home_score}
+                    </span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                      {nextMatch.away_score}
+                    </span>
+                  </div>
+                ) : null}
+                <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
+                  LIVE
+                </div>
               </div>
             )}
 
