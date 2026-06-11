@@ -210,7 +210,12 @@ export async function getGroupStandings() {
     .order('group_name')
     .order('rank');
 
-  if (!offErr && official && official.length > 0) {
+  // Only use official standings if at least one real-group team has played
+  // (api-football standings can lag 5-10 min after a match ends)
+  const officialHasData = !offErr && official && official.length > 0 &&
+    official.some(r => r.group_name.length === 1 && r.played > 0);
+
+  if (officialHasData) {
     const grouped = {};
     for (const row of official) {
       if (!grouped[row.group_name]) grouped[row.group_name] = [];
@@ -229,6 +234,7 @@ export async function getGroupStandings() {
       });
     }
     return Object.entries(grouped)
+      .filter(([letter]) => letter.length === 1) // exclude BEST_3RDS etc
       .map(([letter, standings]) => ({ letter, standings }))
       .sort((a, b) => a.letter.localeCompare(b.letter));
   }
