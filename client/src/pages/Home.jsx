@@ -183,78 +183,76 @@ function Hero({ nextMatch, afterMatch, onNavigate }) {
               </div>
             </div>
 
-            {/* Teams */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                <Flag team={nextMatch.home_team} size={32} />
-                <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
-                  {nextMatch.home_team.toUpperCase()}
-                </span>
-              </div>
-              <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <Flag team={nextMatch.away_team} size={32} />
-                <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
-                  {nextMatch.away_team.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            {/* Countdown */}
-            {cd && !cd.done && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                {[
-                  { v: cd.days, l: 'DAYS' },
-                  { v: cd.hours, l: 'HRS' },
-                  { v: cd.mins, l: 'MIN' },
-                  { v: cd.secs, l: 'SEC' },
-                ].map((u, i) => (
-                  <div key={i} style={{
-                    background: i === 0 ? 'var(--yellow)' : 'var(--bg-2)',
-                    color: i === 0 ? 'var(--ink)' : 'var(--ink)',
-                    borderRadius: 'var(--r-sm)',
-                    padding: '9px 0 7px',
-                    textAlign: 'center',
-                  }}>
-                    <div style={{
-                      fontFamily: 'var(--display)',
-                      fontSize: 26,
-                      lineHeight: 0.95,
-                      letterSpacing: '-0.04em',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}>{String(u.v).padStart(2, '0')}</div>
-                    <div className="label" style={{ fontSize: 8.5, marginTop: 3, opacity: 0.7 }}>{u.l}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {cd?.done && (
-              <div style={{ textAlign: 'center' }}>
-                {nextMatch.home_score !== null && nextMatch.away_score !== null ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                      {nextMatch.home_score}
-                    </span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                      {nextMatch.away_score}
+            {/* Teams + score (integrated when live) */}
+            {cd?.done ? (
+              /* LIVE layout — flag · name · score · name · flag, all in one row */
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, width: '100%' }}>
+                  {/* Home */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                    <Flag team={nextMatch.home_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em' }}>
+                      {nextMatch.home_team.toUpperCase()}
                     </span>
                   </div>
-                ) : null}
-                <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
-                  LIVE
+                  {/* Score */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                        {nextMatch.home_score ?? '–'}
+                      </span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+                      <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                        {nextMatch.away_score ?? '–'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
+                      LIVE
+                    </div>
+                  </div>
+                  {/* Away */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <Flag team={nextMatch.away_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', textAlign: 'right' }}>
+                      {nextMatch.away_team.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
+            ) : (
+              /* PRE-MATCH layout */
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                    <Flag team={nextMatch.home_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
+                      {nextMatch.home_team.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <Flag team={nextMatch.away_team} size={32} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
+                      {nextMatch.away_team.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                {cd && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                    {[{ v: cd.days, l: 'DAYS' }, { v: cd.hours, l: 'HRS' }, { v: cd.mins, l: 'MIN' }, { v: cd.secs, l: 'SEC' }].map((u, i) => (
+                      <div key={i} style={{ background: i === 0 ? 'var(--yellow)' : 'var(--bg-2)', borderRadius: 'var(--r-sm)', padding: '9px 0 7px', textAlign: 'center' }}>
+                        <div style={{ fontFamily: 'var(--display)', fontSize: 26, lineHeight: 0.95, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{String(u.v).padStart(2, '0')}</div>
+                        <div className="label" style={{ fontSize: 8.5, marginTop: 3, opacity: 0.7 }}>{u.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                  <span>{fmtWeekday(nextMatch.match_time)} · {fmtDateShort(nextMatch.match_time)} · {fmtTime(nextMatch.match_time)}</span>
+                </div>
+              </>
             )}
-
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: 11, color: 'var(--muted)',
-              borderTop: '1px solid var(--line)', paddingTop: 10,
-            }}>
-              <span>{fmtWeekday(nextMatch.match_time)} · {fmtDateShort(nextMatch.match_time)} · {fmtTime(nextMatch.match_time)}</span>
-            </div>
 
             {/* Next upcoming match when current is live */}
             {afterMatch && (
