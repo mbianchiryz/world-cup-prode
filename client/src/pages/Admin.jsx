@@ -46,10 +46,10 @@ export default function Admin() {
     );
   }
 
-  const totalUsers      = stats.length;
-  const activePickers   = stats.filter(s => s.prediction_count > 0).length;
-  const bracketCount    = stats.filter(s => s.has_bracket).length;
-  const lockedBrackets  = stats.filter(s => s.bracket_locked).length;
+  const totalUsers        = stats.length;
+  const activePickers     = stats.filter(s => s.prediction_count > 0).length;
+  const bracketCount      = stats.filter(s => s.has_bracket).length;
+  const completedBrackets = stats.filter(s => s.bracket_complete || s.bracket_locked).length;
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -69,7 +69,7 @@ export default function Admin() {
         <StatCard value={totalUsers}     label="TOTAL PLAYERS"      color="var(--ink)" />
         <StatCard value={activePickers}  label="ACTIVE IN PRODE"    color="var(--green)" />
         <StatCard value={bracketCount}   label="BRACKET STARTED"    color="var(--blue)" />
-        <StatCard value={lockedBrackets} label="BRACKET LOCKED"      color="var(--yellow)" />
+        <StatCard value={completedBrackets} label="BRACKET COMPLETE" color="var(--yellow)" />
       </div>
 
       {/* Player table — horizontal scroll on mobile */}
