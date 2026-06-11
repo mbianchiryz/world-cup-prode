@@ -79,7 +79,7 @@ const CITIES = [
 ];
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
-function Hero({ nextMatch, afterMatch, onNavigate }) {
+function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
   const cd = useCountdown(nextMatch?.match_time);
 
   return (
@@ -254,32 +254,32 @@ function Hero({ nextMatch, afterMatch, onNavigate }) {
               </>
             )}
 
-            {/* Next upcoming match when current is live */}
-            {afterMatch && (
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 4 }}>
-                <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 8 }}>
-                  UP NEXT · {afterMatch.group_name ? `GROUP ${afterMatch.group_name}` : ''} MD {afterMatch.matchday ?? '–'}
+            {/* Next upcoming matches (2 rows) */}
+            {upNext.map((m, idx) => (
+              <div key={m.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: idx === 0 ? 4 : 0 }}>
+                <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 6 }}>
+                  {idx === 0 ? 'UP NEXT' : 'THEN'} · {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                    <Flag team={afterMatch.home_team} size={22} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 12, letterSpacing: '-0.02em' }}>
-                      {afterMatch.home_team.toUpperCase()}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Flag team={m.home_team} size={18} />
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 11, letterSpacing: '-0.02em' }}>
+                      {m.home_team.toUpperCase()}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 13, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                    <Flag team={afterMatch.away_team} size={22} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 12, letterSpacing: '-0.02em', textAlign: 'right' }}>
-                      {afterMatch.away_team.toUpperCase()}
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>VS</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                    <span style={{ fontFamily: 'var(--display)', fontSize: 11, letterSpacing: '-0.02em', textAlign: 'right' }}>
+                      {m.away_team.toUpperCase()}
                     </span>
+                    <Flag team={m.away_team} size={18} />
                   </div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>
-                  {fmtWeekday(afterMatch.match_time)} · {fmtDateShort(afterMatch.match_time)} · {fmtTime(afterMatch.match_time)}
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
+                  {fmtWeekday(m.match_time)} · {fmtDateShort(m.match_time)} · {fmtTime(m.match_time)}
                 </div>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -578,8 +578,10 @@ export default function Home() {
       .sort((a, b) => new Date(a.match_time) - new Date(b.match_time)),
     [matches]
   );
-  const nextMatch   = upcomingMatches[0];
-  const afterMatch  = upcomingMatches[1]; // shown when current match is live
+  const nextMatch      = upcomingMatches[0];
+  const isNextLive     = nextMatch && Date.now() >= new Date(nextMatch.match_time).getTime();
+  // When live: show next 2 upcoming; when not live: show next 2 upcoming (so total shown = 3)
+  const upNext         = isNextLive ? upcomingMatches.slice(1, 3) : upcomingMatches.slice(1, 3);
 
   if (loading) {
     return (
@@ -591,7 +593,7 @@ export default function Home() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
-      <Hero nextMatch={nextMatch} afterMatch={afterMatch} onNavigate={navigate} />
+      <Hero nextMatch={nextMatch} upNext={upNext} isNextLive={isNextLive} onNavigate={navigate} />
       <FactsRow participants={leaderboard.standings?.length ?? 0} />
       <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
         <RecentResults matches={matches} />
