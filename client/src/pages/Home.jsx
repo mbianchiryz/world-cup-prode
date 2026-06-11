@@ -567,9 +567,16 @@ export default function Home() {
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
-    Promise.all([getMatches(), getLeaderboard()])
-      .then(([ms, lb]) => { setMatches(ms); setLeaderboard(lb); })
-      .finally(() => setLoading(false));
+    function load() {
+      Promise.all([getMatches(), getLeaderboard()])
+        .then(([ms, lb]) => { setMatches(ms); setLeaderboard(lb); })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+    load();
+    // Poll every 60s so live scores update automatically
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
   }, []);
 
   const upcomingMatches = useMemo(
