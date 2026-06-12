@@ -199,11 +199,11 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                        {nextMatch.home_score ?? '–'}
+                        {nextMatch.home_score ?? 0}
                       </span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--muted)', fontWeight: 700 }}>–</span>
                       <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                        {nextMatch.away_score ?? '–'}
+                        {nextMatch.away_score ?? 0}
                       </span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
