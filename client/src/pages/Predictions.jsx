@@ -300,10 +300,33 @@ function MatchCard({ match, pred, onSave, syncAll = 0 }) {
         </div>
 
         {/* Score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <ScoreBox value={match.finished ? match.home_score : h} onChange={v => handleChange(setH, v)} isResult={match.finished} />
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
-          <ScoreBox value={match.finished ? match.away_score : a} onChange={v => handleChange(setA, v)} isResult={match.finished} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {/* Live score — shown when match is in progress */}
+          {isLockedNotFinished && match.home_score !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                {match.home_score}
+              </span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 22, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                {match.away_score}
+              </span>
+            </div>
+          )}
+          {isLockedNotFinished && match.home_score !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, color: 'var(--green)' }}>
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
+              LIVE
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ScoreBox value={match.finished ? match.home_score : h} onChange={v => handleChange(setH, v)} isResult={match.finished} />
+            <span style={{ fontFamily: 'var(--mono)', fontSize: isLockedNotFinished ? 14 : 18, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+            <ScoreBox value={match.finished ? match.away_score : a} onChange={v => handleChange(setA, v)} isResult={match.finished} />
+          </div>
+          {isLockedNotFinished && match.home_score !== null && (
+            <div className="label" style={{ fontSize: 8, color: 'var(--muted)' }}>YOUR PICK</div>
+          )}
         </div>
 
         {/* Away */}
