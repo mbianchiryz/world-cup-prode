@@ -344,7 +344,7 @@ function PlayerModal({ player, onClose, showChampion }) {
         }}>
           <div>
             <div className="label" style={{ color: '#8B8B90', marginBottom: 6 }}>
-              PLAYER DETAIL · FINISHED MATCHES
+              PLAYER DETAIL · LOCKED & FINISHED MATCHES
             </div>
             <h3 style={{
               fontFamily: 'var(--display)', fontSize: 34,
@@ -450,7 +450,7 @@ function PickRow({ pick, last }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 16 }}>
-          {pick.home_score} – {pick.away_score}
+          {pick.finished || pick.home_score != null ? `${pick.home_score ?? 0} – ${pick.away_score ?? 0}` : 'vs'}
         </div>
         {hasPred ? (
           <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>
@@ -465,12 +465,13 @@ function PickRow({ pick, last }) {
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.away_team}</span>
       </div>
       <div style={{
-        background: ptsColor, color: ptsFg,
+        background: pick.finished ? ptsColor : 'transparent',
+        color: pick.finished ? ptsFg : 'var(--green)',
         borderRadius: 999, textAlign: 'center',
         padding: '4px 8px',
-        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12,
+        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: pick.finished ? 12 : 9,
       }}>
-        {hasPred ? (pts > 0 ? `+${pts}` : '0') : '–'}
+        {pick.finished ? (hasPred ? (pts > 0 ? `+${pts}` : '0') : '–') : 'LIVE'}
       </div>
     </div>
   );

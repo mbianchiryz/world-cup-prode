@@ -291,29 +291,41 @@ export async function getGroupStandings() {
   })).sort((a, b) => a.letter.localeCompare(b.letter));
 }
 
-// ── Player picks (for leaderboard detail modal — finished matches only) ───────
+// ── Player picks (for leaderboard detail modal) ───────────────────────────────
+// Shows finished matches + locked/live matches (kickoff − 1h passed), since those
+// picks are already final and can no longer be edited.
+const PICK_LOCK_OFFSET_MS = 60 * 60 * 1000;
 export async function getUserPicks(userId) {
   const [
     { data: profile },
-    { data: finishedMatches },
+    { data: allMatches },
     { data: predictions },
   ] = await Promise.all([
     supabase.from('profiles').select('id, name, email').eq('id', userId).maybeSingle(),
-    supabase.from('matches').select('*').eq('finished', true).order('match_time'),
+    supabase.from('matches').select('*').order('match_time'),
     supabase.from('predictions').select('*').eq('user_id', userId),
   ]);
 
   if (!profile) throw new Error('User not found');
 
-  const picks = (finishedMatches || []).map((m) => {
+  const now = Date.now();
+  // Only matches that are finished OR already locked (so picks are final)
+  const visibleMatches = (allMatches || []).filter((m) => {
+    if (m.finished) return true;
+    const lockMs = new Date(m.match_time).getTime() - PICK_LOCK_OFFSET_MS;
+    return now >= lockMs;
+  });
+
+  const picks = visibleMatches.map((m) => {
     const pred   = (predictions || []).find((p) => p.match_id === m.id) || null;
-    const points = pred ? calcMatchPoints(pred, m) : null;
+    const points = (pred && m.finished) ? calcMatchPoints(pred, m) : null;
     return {
       match_id:   m.id,
       home_team:  m.home_team,
       away_team:  m.away_team,
       home_score: m.home_score,
       away_score: m.away_score,
+      finished:   m.finished,
       match_time: m.match_time,
       stage:      m.stage,
       group_name: m.group_name,
