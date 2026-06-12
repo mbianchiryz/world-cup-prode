@@ -26,6 +26,7 @@ class SectionErrorBoundary extends React.Component {
 import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
 import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
+import { calcMatchPoints } from '@/lib/scoring';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -338,14 +339,39 @@ function MatchCard({ match, pred, onSave, syncAll = 0 }) {
         </div>
       </div>
 
-      {/* Footer: countdown + save */}
+      {/* Footer: countdown + save (or your pick + points when finished) */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px',
         background: 'var(--bg-2)',
         borderTop: '1px solid var(--line)',
       }}>
-        <CountdownBadge matchTime={match.match_time} finished={match.finished} />
+        {match.finished && pred?.home_score != null ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>YOUR PICK</span>
+            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+              {pred.home_score} – {pred.away_score}
+            </span>
+            {(() => {
+              const pts = calcMatchPoints(pred, match);
+              const color = pts === 7 ? 'var(--green)' : pts >= 5 ? 'var(--cyan)' : pts >= 3 ? 'var(--blue)' : pts >= 2 ? 'var(--orange)' : 'var(--muted)';
+              return (
+                <span style={{
+                  fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11,
+                  background: pts > 0 ? color : 'var(--line)',
+                  color: pts > 0 ? '#fff' : 'var(--muted)',
+                  borderRadius: 999, padding: '2px 9px',
+                }}>
+                  {pts > 0 ? `+${pts}` : '0'} pts
+                </span>
+              );
+            })()}
+          </div>
+        ) : match.finished ? (
+          <span className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>NO PICK · FINAL</span>
+        ) : (
+          <CountdownBadge matchTime={match.match_time} finished={match.finished} />
+        )}
 
         {canEdit && (
           <button
