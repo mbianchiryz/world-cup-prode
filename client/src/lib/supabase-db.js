@@ -131,15 +131,15 @@ export async function getLeaderboard() {
     .filter((m) => m.finished && m.home_score != null)
     .sort((a, b) => new Date(b.match_time) - new Date(a.match_time));
 
-  // "Last round" = all finished matches within 36 h of the most recent one.
-  // Used to compute previous standings for trend.
+  // "Last round" = the most-recently-played batch of matches (those sharing the
+  // latest kickoff time). Trend = how positions shifted from BEFORE that batch.
+  // This gives "change vs the previous match(es)" instead of vs the season start.
   const trendMap = {};
   if (finishedSorted.length > 0) {
-    const latestMs = new Date(finishedSorted[0].match_time).getTime();
-    const WINDOW   = 36 * 60 * 60 * 1000; // 36 h
+    const latestTime = finishedSorted[0].match_time;
     const lastRoundIds = new Set(
       finishedSorted
-        .filter((m) => latestMs - new Date(m.match_time).getTime() < WINDOW)
+        .filter((m) => m.match_time === latestTime)
         .map((m) => m.id)
     );
 
@@ -154,7 +154,12 @@ export async function getLeaderboard() {
     prevList.sort((a, b) =>
       b.total - a.total || b.exact - a.exact || b.result - a.result || a.name.localeCompare(b.name)
     );
-    prevList.forEach((p, i) => { trendMap[p.id] = i + 1; });
+    // Only compute trend if someone actually had points before the last round
+    // (otherwise everyone was tied at 0 → meaningless alphabetical jumps)
+    const someoneHadPoints = prevList.some((p) => p.total > 0);
+    if (someoneHadPoints) {
+      prevList.forEach((p, i) => { trendMap[p.id] = i + 1; });
+    }
   }
 
   // ── Main standings ─────────────────────────────────────────────────────────
