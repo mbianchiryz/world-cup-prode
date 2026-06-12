@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { getFlag, getAbbr } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
 import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings, getThirdPlaceRanking } from '@/lib/supabase-db';
@@ -317,7 +318,7 @@ function PlayerModal({ player, onClose, showChampion }) {
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
@@ -411,7 +412,8 @@ function PlayerModal({ player, onClose, showChampion }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

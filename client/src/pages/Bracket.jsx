@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { getFlag, getAbbr, GROUPS } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
 import { getBracketChallenge, saveBracketChallenge, getBracketLeaderboard } from '@/lib/supabase-db';
@@ -688,7 +689,7 @@ function BracketPlayerModal({ bracket, onClose }) {
 
   const champion = bracket.knockoutPicks?.['final'];
 
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,10,15,0.65)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
@@ -755,7 +756,8 @@ function BracketPlayerModal({ bracket, onClose }) {
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
