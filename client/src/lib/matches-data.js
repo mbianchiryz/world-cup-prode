@@ -71,6 +71,29 @@ export const TEAM_FLAGS = {
   'United States':                          '🇺🇸',
 };
 
+// ── api-football name → canonical name (matches the GROUPS constant) ──────────
+// api-football returns "South Korea", "Czech Republic" etc. but our GROUPS use
+// the official FIFA names. Normalize so standings/scoring line up.
+export const CANONICAL_NAME = {
+  'South Korea':            'Korea Republic',
+  'Czech Republic':         'Czechia',
+  'Turkey':                 'Türkiye',
+  'Iran':                   'IR Iran',
+  'DR Congo':               'Congo DR',
+  'Cape Verde':             'Cabo Verde',
+  'Cape Verde Islands':     'Cabo Verde',
+  "Cote d'Ivoire":          "Côte d'Ivoire",
+  'Ivory Coast':            "Côte d'Ivoire",
+  'Curacao':                'Curaçao',
+  'Bosnia & Herzegovina':   'Bosnia and Herzegovina',
+  'United States':          'USA',
+};
+
+/** Returns the canonical (FIFA/GROUPS) name for a team, handling api-football spellings */
+export function canonicalTeam(name) {
+  return CANONICAL_NAME[name] ?? name;
+}
+
 // ── Team → Group reverse-lookup (covers official + api-football alternate names)
 export const TEAM_GROUP = {
   // A

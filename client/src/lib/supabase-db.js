@@ -5,7 +5,7 @@
  */
 import { supabase } from './supabase';
 import { calcMatchPoints, calcScore, isCorrectResult } from './scoring';
-import { ALL_TEAMS, GROUPS, TEAM_GROUP, getFlag } from './matches-data';
+import { ALL_TEAMS, GROUPS, TEAM_GROUP, canonicalTeam, getFlag } from './matches-data';
 
 // ── Matches ───────────────────────────────────────────────────────────────────
 export async function getMatches() {
@@ -260,14 +260,17 @@ export async function getGroupStandings() {
   // Apply finished match results
   for (const m of (matches || [])) {
     if (!m.finished || m.home_score == null) continue;
+    // Normalize api-football names to canonical FIFA names ("South Korea" → "Korea Republic")
+    const homeTeam = canonicalTeam(m.home_team);
+    const awayTeam = canonicalTeam(m.away_team);
     // group_name may be null in DB — derive it from team names
     const letter = m.group_name ||
-      TEAM_GROUP[m.home_team] ||
-      TEAM_GROUP[m.away_team] ||
+      TEAM_GROUP[homeTeam] ||
+      TEAM_GROUP[awayTeam] ||
       null;
     if (!letter || !tables[letter]) continue;
-    const th = tables[letter][m.home_team];
-    const ta = tables[letter][m.away_team];
+    const th = tables[letter][homeTeam];
+    const ta = tables[letter][awayTeam];
     if (!th || !ta) continue;
 
     th.p++; ta.p++;
