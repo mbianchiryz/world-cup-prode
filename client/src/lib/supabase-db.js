@@ -126,6 +126,12 @@ export async function getLeaderboard() {
 
   // ── Helpers for streak & trend ─────────────────────────────────────────────
 
+  // Active players = made ≥1 prediction or a champion pick (others hidden from ranking)
+  const activeIds = new Set([
+    ...(allPreds   || []).map((p) => p.user_id),
+    ...(champPreds || []).map((c) => c.user_id),
+  ]);
+
   // Finished matches sorted newest → oldest (used for streak)
   const finishedSorted = (matches || [])
     .filter((m) => m.finished && m.home_score != null)
@@ -133,7 +139,6 @@ export async function getLeaderboard() {
 
   // "Last round" = the most-recently-played batch of matches (those sharing the
   // latest kickoff time). Trend = how positions shifted from BEFORE that batch.
-  // This gives "change vs the previous match(es)" instead of vs the season start.
   const trendMap = {};
   if (finishedSorted.length > 0) {
     const latestTime = finishedSorted[0].match_time;
@@ -143,19 +148,19 @@ export async function getLeaderboard() {
         .map((m) => m.id)
     );
 
-    // Standings without the last round
-    const prevList = (profiles || []).map((user) => {
-      const userPrevPreds = (allPreds   || []).filter((p) => p.user_id === user.id && !lastRoundIds.has(p.match_id));
-      const prevMatches   = (matches    || []).filter((m) => !lastRoundIds.has(m.id));
-      const champPred     = (champPreds || []).find((c) => c.user_id === user.id) || null;
-      const s = calcScore({ predictions: userPrevPreds, matches: prevMatches, championPred: champPred, champion });
-      return { id: user.id, total: s.total, exact: s.exact, result: s.result, name: user.name || '' };
-    });
+    // Previous standings — only active players, without the last round
+    const prevList = (profiles || [])
+      .filter((user) => activeIds.has(user.id))
+      .map((user) => {
+        const userPrevPreds = (allPreds   || []).filter((p) => p.user_id === user.id && !lastRoundIds.has(p.match_id));
+        const prevMatches   = (matches    || []).filter((m) => !lastRoundIds.has(m.id));
+        const champPred     = (champPreds || []).find((c) => c.user_id === user.id) || null;
+        const s = calcScore({ predictions: userPrevPreds, matches: prevMatches, championPred: champPred, champion });
+        return { id: user.id, total: s.total, exact: s.exact, result: s.result, name: user.name || '' };
+      });
     prevList.sort((a, b) =>
       b.total - a.total || b.exact - a.exact || b.result - a.result || a.name.localeCompare(b.name)
     );
-    // Only compute trend if someone actually had points before the last round
-    // (otherwise everyone was tied at 0 → meaningless alphabetical jumps)
     const someoneHadPoints = prevList.some((p) => p.total > 0);
     if (someoneHadPoints) {
       prevList.forEach((p, i) => { trendMap[p.id] = i + 1; });
@@ -189,8 +194,11 @@ export async function getLeaderboard() {
     };
   });
 
+  // Only include players who actually participated (made ≥1 pick or a champion pick)
+  const active = standings.filter((p) => activeIds.has(p.id));
+
   // Tiebreakers: total → exact-score picks → other scoring picks → name (alphabetical)
-  standings.sort((a, b) =>
+  active.sort((a, b) =>
     b.total - a.total
     || b.exact - a.exact
     || b.result - a.result
@@ -198,12 +206,12 @@ export async function getLeaderboard() {
   );
 
   // Attach rank + trend (positive = moved up, negative = moved down)
-  standings.forEach((p, i) => {
+  active.forEach((p, i) => {
     p.rank  = i + 1;
     p.trend = trendMap[p.id] != null ? trendMap[p.id] - (i + 1) : null;
   });
 
-  return { standings, champion };
+  return { standings: active, champion };
 }
 
 // ── Group standings — reads official api-football data, falls back to local calc ─
