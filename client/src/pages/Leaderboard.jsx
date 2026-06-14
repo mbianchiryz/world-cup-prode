@@ -302,6 +302,12 @@ function PlayerModal({ player, onClose, showChampion }) {
   const [picks, setPicks]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -407,7 +413,7 @@ function PlayerModal({ player, onClose, showChampion }) {
                 No finished matches yet.
               </div>
             ) : (
-              picks.map((pk, i) => <PickRow key={pk.match_id} pick={pk} last={i === picks.length - 1} />)
+              picks.map((pk, i) => <PickRow key={pk.match_id} pick={pk} last={i === picks.length - 1} isMobile={isMobile} />)
             )
           )}
         </div>
@@ -417,7 +423,7 @@ function PlayerModal({ player, onClose, showChampion }) {
   );
 }
 
-function PickRow({ pick, last }) {
+function PickRow({ pick, last, isMobile }) {
   const hasPred = pick.pred_home !== null;
   const pts = hasPred ? (pick.points ?? 0) : null;
 
@@ -429,29 +435,77 @@ function PickRow({ pick, last }) {
     pts !== null ? 'var(--line)'   : 'var(--bg-2)';
   const ptsFg = ptsColor === 'var(--line)' || ptsColor === 'var(--bg-2)' ? 'var(--muted)' : '#fff';
 
-  const stageLabel =
-    pick.stage === 'group' ? (pick.group_name ? `GR ${pick.group_name}` : 'GROUP') :
-    ({ r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', third: '3RD' }[pick.stage] ?? pick.stage.toUpperCase());
+  // Use abbreviations on mobile so rows fit without horizontal scroll
+  const homeLabel = isMobile ? getAbbr(pick.home_team) : pick.home_team;
+  const awayLabel = isMobile ? getAbbr(pick.away_team) : pick.away_team;
 
+  const scoreText = (pick.finished || pick.home_score != null)
+    ? `${pick.home_score ?? 0} – ${pick.away_score ?? 0}` : 'vs';
+
+  const ptsBadge = (
+    <div style={{
+      background: pick.finished ? ptsColor : 'transparent',
+      color: pick.finished ? ptsFg : 'var(--green)',
+      borderRadius: 999, textAlign: 'center',
+      padding: '4px 8px',
+      fontFamily: 'var(--mono)', fontWeight: 700, fontSize: pick.finished ? 12 : 9,
+      whiteSpace: 'nowrap',
+    }}>
+      {pick.finished ? (hasPred ? (pts > 0 ? `+${pts}` : '0') : '–') : 'LIVE'}
+    </div>
+  );
+
+  if (isMobile) {
+    // Compact 3-column layout: HOME | score+pick | AWAY, with pts badge on the score
+    return (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        gap: 8, alignItems: 'center',
+        padding: '12px 16px',
+        borderBottom: last ? 'none' : '1px solid var(--line)',
+        opacity: hasPred ? 1 : 0.55,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-start', minWidth: 0 }}>
+          <Flag team={pick.home_team} size={18} />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700 }}>{homeLabel}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 15 }}>{scoreText}</div>
+          {hasPred ? (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+              pick {pick.pred_home}–{pick.pred_away}
+            </div>
+          ) : (
+            <div style={{ fontSize: 9, color: 'var(--muted)', fontStyle: 'italic' }}>no pick</div>
+          )}
+          <div style={{ marginTop: 2 }}>{ptsBadge}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', minWidth: 0 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700 }}>{awayLabel}</span>
+          <Flag team={pick.away_team} size={18} />
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '60px 1fr 90px 1fr 56px',
+      gridTemplateColumns: '1fr 90px 1fr 56px',
       gap: 12,
       alignItems: 'center',
       padding: '13px 20px',
       borderBottom: last ? 'none' : '1px solid var(--line)',
       opacity: hasPred ? 1 : 0.55,
     }}>
-      <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>{stageLabel}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.home_team}</span>
         <Flag team={pick.home_team} size={20} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 16 }}>
-          {pick.finished || pick.home_score != null ? `${pick.home_score ?? 0} – ${pick.away_score ?? 0}` : 'vs'}
-        </div>
+        <div style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 16 }}>{scoreText}</div>
         {hasPred ? (
           <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>
             {pick.pred_home} – {pick.pred_away}
@@ -464,15 +518,7 @@ function PickRow({ pick, last }) {
         <Flag team={pick.away_team} size={20} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>{pick.away_team}</span>
       </div>
-      <div style={{
-        background: pick.finished ? ptsColor : 'transparent',
-        color: pick.finished ? ptsFg : 'var(--green)',
-        borderRadius: 999, textAlign: 'center',
-        padding: '4px 8px',
-        fontFamily: 'var(--mono)', fontWeight: 700, fontSize: pick.finished ? 12 : 9,
-      }}>
-        {pick.finished ? (hasPred ? (pts > 0 ? `+${pts}` : '0') : '–') : 'LIVE'}
-      </div>
+      {ptsBadge}
     </div>
   );
 }
