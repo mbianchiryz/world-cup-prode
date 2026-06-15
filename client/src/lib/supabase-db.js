@@ -7,6 +7,27 @@ import { supabase } from './supabase';
 import { calcMatchPoints, calcScore, isCorrectResult } from './scoring';
 import { ALL_TEAMS, GROUPS, TEAM_GROUP, canonicalTeam, getFlag } from './matches-data';
 
+// ── Paginated fetch helper ────────────────────────────────────────────────────
+// Supabase caps results at 1000 rows per request. For tables that can exceed that
+// (predictions: players × matches), fetch in 1000-row pages until exhausted.
+async function fetchAllRows(table, columns = '*') {
+  const PAGE = 1000;
+  let all = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // ── Matches ───────────────────────────────────────────────────────────────────
 export async function getMatches() {
   const { data, error } = await supabase
@@ -109,18 +130,18 @@ export async function getLeaderboard() {
   const [
     { data: profiles, error: e1 },
     { data: matches,  error: e2 },
-    { data: allPreds, error: e3 },
-    { data: champPreds },
+    allPreds,                          // paginated — predictions can exceed 1000 rows
+    champPreds,                        // paginated — safe-guard for >1000 too
     { data: settingRow },
   ] = await Promise.all([
     supabase.from('profiles').select('id, name, email'),
     supabase.from('matches').select('*'),
-    supabase.from('predictions').select('*'),
-    supabase.from('champion_predictions').select('*'),
+    fetchAllRows('predictions'),
+    fetchAllRows('champion_predictions'),
     supabase.from('settings').select('value').eq('key', 'champion').maybeSingle(),
   ]);
 
-  if (e1 || e2 || e3) throw new Error((e1 || e2 || e3).message);
+  if (e1 || e2) throw new Error((e1 || e2).message);
 
   const champion = settingRow?.value || null;
 
