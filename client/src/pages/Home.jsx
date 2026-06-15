@@ -208,7 +208,7 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
                       <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
-                      LIVE
+                      {nextMatch.live_status ? `LIVE · ${nextMatch.live_status}` : 'LIVE'}
                     </div>
                   </div>
                   {/* Away */}

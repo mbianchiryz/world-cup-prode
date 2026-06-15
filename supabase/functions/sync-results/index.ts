@@ -61,6 +61,16 @@ Deno.serve(async () => {
     const finished    = ['FT', 'AET', 'PEN'].includes(statusShort);
     const isKnockout  = !f.league.round.startsWith('Group Stage');
 
+    // Live minute / status label (same response — no extra API cost)
+    // HT = half-time, ET/BT = extra time, P = penalties; otherwise elapsed minute
+    let liveStatus: string | null = null;
+    if (!finished) {
+      if (statusShort === 'HT')      liveStatus = 'HT';
+      else if (statusShort === 'P')  liveStatus = 'PENS';
+      else if (['ET','BT'].includes(statusShort)) liveStatus = f.fixture.status.elapsed ? `${f.fixture.status.elapsed}' ET` : 'ET';
+      else if (f.fixture.status.elapsed != null) liveStatus = `${f.fixture.status.elapsed}'`;
+    }
+
     // Determine winner for knockout matches
     let winner: string | null = null;
     if (finished && isKnockout) {
@@ -82,6 +92,7 @@ Deno.serve(async () => {
         away_score: f.goals.away,
         finished,
         winner,
+        live_status: liveStatus,
       })
       .eq('id', f.fixture.id);
 
