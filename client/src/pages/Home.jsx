@@ -343,15 +343,12 @@ function RecentResults({ matches }) {
             return (
               <div key={m.id} style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 1fr auto 1fr 50px',
+                gridTemplateColumns: '1fr auto 1fr 50px',
                 alignItems: 'center',
                 gap: 8,
                 padding: '12px 16px',
                 borderBottom: i < recent.length - 1 ? '1px solid var(--line)' : 'none',
               }}>
-                <div className="label" style={{ color: 'var(--muted)', fontSize: 9.5 }}>
-                  {m.group_name ? `GR ${m.group_name}` : '–'}
-                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: homeWin ? 700 : 500 }}>
                   <Flag team={m.home_team} size={20} />
                   <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.home_team}</span>
@@ -381,8 +378,8 @@ function RecentResults({ matches }) {
 
 // ── Top of Pool ───────────────────────────────────────────────────────────────
 function TopOfPool({ standings, onNavigate }) {
-  const top = standings.slice(0, 3);
-  const podiumColors = ['var(--yellow)', 'var(--bg-2)', 'var(--orange)'];
+  const top = standings.slice(0, 4);
+  const podiumColors = ['var(--yellow)', 'var(--bg-2)', 'var(--orange)', 'var(--bg-2)'];
 
   return (
     <div style={{ background: 'var(--bg)', border: '2px solid var(--ink)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
@@ -410,7 +407,7 @@ function TopOfPool({ standings, onNavigate }) {
                   width: 36, height: 36,
                   borderRadius: 'var(--r-sm)',
                   background: podiumColors[i],
-                  color: i === 1 ? 'var(--ink)' : (podiumColors[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff'),
+                  color: podiumColors[i] === 'var(--bg-2)' || podiumColors[i] === 'var(--yellow)' ? 'var(--ink)' : '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--display)', fontSize: 17, flexShrink: 0,
                 }}>{i + 1}</div>
