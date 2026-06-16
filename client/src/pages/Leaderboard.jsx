@@ -541,27 +541,43 @@ function BracketTable({ brackets, currentUserId, showChampion }) {
     <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: showChampion ? '1fr 160px 120px 80px' : '1fr 120px 80px',
+        display: 'grid', gridTemplateColumns: showChampion ? '44px 1fr 160px 120px 80px' : '44px 1fr 120px 80px',
         gap: 8, padding: '10px 16px',
         background: 'var(--ink)', color: 'var(--bg)',
       }} className="label">
+        <div>#</div>
         <div>PLAYER</div>
         {showChampion && <div style={{ textAlign: 'center' }}>CHAMPION</div>}
         <div style={{ textAlign: 'center' }}>STATUS</div>
         <div style={{ textAlign: 'right' }}>SCORE</div>
       </div>
       {/* Rows */}
-      {sorted.map(b => {
+      {sorted.map((b, i) => {
         const isMe = b.userId === currentUserId;
         const isComplete = b.locked || b.phase === 'complete';
         const champion = b.knockoutPicks?.['final'];
+        const rankColor =
+          i === 0 ? 'var(--yellow)' :
+          i === 1 ? 'var(--blue)'   :
+          i === 2 ? 'var(--red)'    : 'transparent';
+        const rankFg =
+          i === 0 ? 'var(--ink)' :
+          i === 1 || i === 2 ? '#fff' : 'var(--muted)';
         return (
           <div key={b.userId} className="row-hover" style={{
-            display: 'grid', gridTemplateColumns: showChampion ? '1fr 160px 120px 80px' : '1fr 120px 80px',
+            display: 'grid', gridTemplateColumns: showChampion ? '44px 1fr 160px 120px 80px' : '44px 1fr 120px 80px',
             gap: 8, padding: '12px 16px', alignItems: 'center',
             borderBottom: '1px solid var(--line)',
             background: 'transparent',
           }}>
+            <div style={{
+              width: 32, height: 32, background: rankColor, color: rankFg,
+              borderRadius: 'var(--r-sm)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--display)', fontSize: 16, letterSpacing: '-0.03em',
+              border: rankColor === 'transparent' ? '1.5px solid var(--line)' : 'none',
+              flexShrink: 0,
+            }}>{i + 1}</div>
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
               {b.name}
               {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9,
