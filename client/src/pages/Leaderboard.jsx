@@ -148,7 +148,7 @@ function Podium({ players, onSelect, showChampion }) {
 }
 
 // ── Full Table ────────────────────────────────────────────────────────────────
-function FullTable({ players, onSelect, showChampion }) {
+function FullTable({ players, onSelect, showChampion, currentUserId }) {
   const grid = cols(showChampion);
   return (
     <div style={{ background: 'var(--bg)', border: '1.5px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
@@ -182,7 +182,8 @@ function FullTable({ players, onSelect, showChampion }) {
           i === 1 || i === 2 ? '#fff' : 'var(--muted)';
         return (
           <TableRow key={p.id} p={p} i={i} rankColor={rankColor} rankFg={rankFg}
-                    onSelect={onSelect} showChampion={showChampion} grid={grid} />
+                    onSelect={onSelect} showChampion={showChampion} grid={grid}
+                    isMe={p.id === currentUserId} />
         );
       })}
 
@@ -195,7 +196,7 @@ function FullTable({ players, onSelect, showChampion }) {
   );
 }
 
-function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
+function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid, isMe }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -209,8 +210,9 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
         padding: '12px 16px',
         alignItems: 'center',
         borderBottom: '1px solid var(--line)',
+        borderLeft: isMe ? '4px solid var(--yellow)' : '4px solid transparent',
         cursor: 'pointer',
-        background: hovered ? 'var(--bg-2)' : 'transparent',
+        background: isMe ? 'rgba(255,199,0,0.10)' : hovered ? 'var(--bg-2)' : 'transparent',
         transition: 'background .12s',
       }}
       className="lb-grid row-hover"
@@ -231,6 +233,11 @@ function TableRow({ p, i, rankColor, rankFg, onSelect, showChampion, grid }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {p.name}
+          {isMe && <span style={{
+            marginLeft: 7, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700,
+            background: 'var(--yellow)', color: 'var(--ink)',
+            borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em',
+          }}>YOU</span>}
         </div>
         {/* Shown only on mobile via CSS */}
         <div className="lb-mobile-stats" style={{ display: 'none', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
@@ -568,7 +575,8 @@ function BracketTable({ brackets, currentUserId, showChampion }) {
             display: 'grid', gridTemplateColumns: showChampion ? '44px 1fr 160px 120px 80px' : '44px 1fr 120px 80px',
             gap: 8, padding: '12px 16px', alignItems: 'center',
             borderBottom: '1px solid var(--line)',
-            background: 'transparent',
+            borderLeft: isMe ? '4px solid var(--yellow)' : '4px solid transparent',
+            background: isMe ? 'rgba(255,199,0,0.10)' : 'transparent',
           }}>
             <div style={{
               width: 32, height: 32, background: rankColor, color: rankFg,
@@ -580,8 +588,8 @@ function BracketTable({ brackets, currentUserId, showChampion }) {
             }}>{i + 1}</div>
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
               {b.name}
-              {isMe && <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 9,
-                color: 'var(--muted)', fontWeight: 500 }}>YOU</span>}
+              {isMe && <span style={{ marginLeft: 7, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700,
+                background: 'var(--yellow)', color: 'var(--ink)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em' }}>YOU</span>}
             </div>
             {showChampion && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -769,7 +777,7 @@ export default function Leaderboard() {
 
       {/* Prode table */}
       {activeTab === 'prode' && (
-        <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} />
+        <FullTable players={standings} onSelect={setSelected} showChampion={knockoutStarted} currentUserId={currentUserId} />
       )}
 
       {/* Bracket table + scoring guide */}
