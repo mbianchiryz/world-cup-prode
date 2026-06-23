@@ -78,31 +78,92 @@ const CITIES = [
   { name: 'Monterrey',      country: 'MEX', color: 'var(--red)'    },
 ];
 
+// ── Live match row (score + minute) ──────────────────────────────────────────
+function LiveRow({ m }) {
+  return (
+    <div>
+      <div className="label" style={{ color: 'var(--green)', fontSize: 9, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
+        LIVE{m.live_status ? ` · ${m.live_status}` : ''}
+        <span style={{ color: 'var(--muted)', marginLeft: 'auto' }}>
+          {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          <Flag team={m.home_team} size={32} />
+          <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em' }}>{m.home_team.toUpperCase()}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 40, letterSpacing: '-0.04em', lineHeight: 1 }}>{m.home_score ?? 0}</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--muted)', fontWeight: 700 }}>–</span>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 40, letterSpacing: '-0.04em', lineHeight: 1 }}>{m.away_score ?? 0}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <Flag team={m.away_team} size={32} />
+          <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', textAlign: 'right' }}>{m.away_team.toUpperCase()}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Upcoming match row (with countdown for the very next one) ─────────────────
+function UpcomingRow({ m, label, showCountdown }) {
+  const cd = useCountdown(showCountdown ? m.match_time : null);
+  return (
+    <div>
+      <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 6 }}>
+        {label} · {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          <Flag team={m.home_team} size={32} />
+          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>{m.home_team.toUpperCase()}</span>
+        </div>
+        <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <Flag team={m.away_team} size={32} />
+          <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>{m.away_team.toUpperCase()}</span>
+        </div>
+      </div>
+      {showCountdown && cd && !cd.done && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 10 }}>
+          {[{ v: cd.days, l: 'DAYS' }, { v: cd.hours, l: 'HRS' }, { v: cd.mins, l: 'MIN' }, { v: cd.secs, l: 'SEC' }].map((u, i) => (
+            <div key={i} style={{ background: i === 0 ? 'var(--yellow)' : 'var(--bg-2)', borderRadius: 'var(--r-sm)', padding: '9px 0 7px', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 26, lineHeight: 0.95, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{String(u.v).padStart(2, '0')}</div>
+              <div className="label" style={{ fontSize: 8.5, marginTop: 3, opacity: 0.7 }}>{u.l}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: showCountdown ? 8 : 5 }}>
+        {fmtWeekday(m.match_time)} · {fmtDateShort(m.match_time)} · {fmtTime(m.match_time)}
+      </div>
+    </div>
+  );
+}
+
 // ── Hero ──────────────────────────────────────────────────────────────────────
-function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
-  const cd = useCountdown(nextMatch?.match_time);
+function Hero({ liveMatches = [], upcoming = [], onNavigate }) {
+  const hasLive = liveMatches.length > 0;
+  // Fill the card to ~3 rows total: live matches first, then upcoming
+  const upcomingToShow = upcoming.slice(0, Math.max(0, 3 - liveMatches.length));
+  const anyMatch = hasLive || upcoming.length > 0;
 
   return (
     <div className="hero-pad" style={{
-      background: 'var(--ink)',
-      color: 'var(--bg)',
-      borderRadius: 'var(--r-xl)',
-      padding: '40px 44px',
-      position: 'relative',
-      overflow: 'hidden',
-      minHeight: 340,
+      background: 'var(--ink)', color: 'var(--bg)',
+      borderRadius: 'var(--r-xl)', padding: '40px 44px',
+      position: 'relative', overflow: 'hidden', minHeight: 340,
     }}>
-      {/* Decorative 26 — sized/positioned via CSS (.hero-26) */}
       <div className="hero-26">26</div>
 
       <div className="mob-1col" style={{
-        position: 'relative',
-        zIndex: 1,
+        position: 'relative', zIndex: 1,
         display: 'grid',
-        gridTemplateColumns: nextMatch ? '1.1fr 1fr' : '1fr',
-        gap: 32,
-        alignItems: 'stretch',
-        minHeight: 260,
+        gridTemplateColumns: anyMatch ? '1.1fr 1fr' : '1fr',
+        gap: 32, alignItems: 'stretch', minHeight: 260,
       }}>
         {/* Left */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -111,11 +172,8 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
               <span style={{ color: 'var(--yellow)' }}>●</span> SEASON 2026 · RYZ LABS POOL
             </div>
             <h1 style={{
-              fontFamily: 'var(--display)',
-              fontSize: 'clamp(52px, 6vw, 84px)',
-              lineHeight: 0.88,
-              letterSpacing: '-0.045em',
-              margin: '0 0 16px',
+              fontFamily: 'var(--display)', fontSize: 'clamp(52px, 6vw, 84px)',
+              lineHeight: 0.88, letterSpacing: '-0.045em', margin: '0 0 16px',
             }}>
               PREDICT<br />EVERY<br />MATCH.
             </h1>
@@ -124,160 +182,48 @@ function Hero({ nextMatch, upNext = [], isNextLive, onNavigate }) {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => onNavigate('/predictions')}
-              style={{
-                all: 'unset', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--yellow)', color: 'var(--ink)',
-                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
-                padding: '13px 22px',
-              }}
-            >
-              Continue picks {ARROW}
-            </button>
-            <button
-              onClick={() => onNavigate('/bracket')}
-              style={{
-                all: 'unset', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                border: '1.5px solid #3A3A45', color: '#fff',
-                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
-                padding: '13px 22px',
-              }}
-            >
-              Bracket {ARROW}
-            </button>
-            <button
-              onClick={() => onNavigate('/leaderboard')}
-              style={{
-                all: 'unset', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                border: '1.5px solid #3A3A45', color: '#fff',
-                borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14,
-                padding: '13px 22px',
-              }}
-            >
-              Standings
-            </button>
+            <button onClick={() => onNavigate('/predictions')} style={{
+              all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'var(--yellow)', color: 'var(--ink)', borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '13px 22px',
+            }}>Continue picks {ARROW}</button>
+            <button onClick={() => onNavigate('/bracket')} style={{
+              all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              border: '1.5px solid #3A3A45', color: '#fff', borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '13px 22px',
+            }}>Bracket {ARROW}</button>
+            <button onClick={() => onNavigate('/leaderboard')} style={{
+              all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              border: '1.5px solid #3A3A45', color: '#fff', borderRadius: 'var(--r)', fontWeight: 700, fontSize: 14, padding: '13px 22px',
+            }}>Standings</button>
           </div>
         </div>
 
-        {/* Right: next match card */}
-        {nextMatch && (
+        {/* Right: live + upcoming matches card */}
+        {anyMatch && (
           <div className="card-hover" style={{
-            background: 'var(--bg)',
-            color: 'var(--ink)',
-            borderRadius: 'var(--r-lg)',
-            padding: 22,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
+            background: 'var(--bg)', color: 'var(--ink)',
+            borderRadius: 'var(--r-lg)', padding: 22,
+            display: 'flex', flexDirection: 'column', gap: 14,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div className="label" style={{ color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                {BOLT} NEXT KICKOFF
-              </div>
-              <div className="label" style={{ color: 'var(--muted)' }}>
-                {nextMatch.group_name ? `GRP ${nextMatch.group_name} · ` : ''}MD {nextMatch.matchday ?? '–'}
-              </div>
+            <div className="label" style={{ color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {BOLT} {hasLive ? 'LIVE NOW' : 'NEXT KICKOFF'}
             </div>
 
-            {/* Teams + score (integrated when live) */}
-            {cd?.done ? (
-              /* LIVE layout — flag · name · score · name · flag, all in one row */
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, width: '100%' }}>
-                  {/* Home */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                    <Flag team={nextMatch.home_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em' }}>
-                      {nextMatch.home_team.toUpperCase()}
-                    </span>
-                  </div>
-                  {/* Score */}
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                        {nextMatch.home_score ?? 0}
-                      </span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--muted)', fontWeight: 700 }}>–</span>
-                      <span style={{ fontFamily: 'var(--display)', fontSize: 44, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                        {nextMatch.away_score ?? 0}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
-                      {nextMatch.live_status ? `LIVE · ${nextMatch.live_status}` : 'LIVE'}
-                    </div>
-                  </div>
-                  {/* Away */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <Flag team={nextMatch.away_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 14, letterSpacing: '-0.02em', textAlign: 'right' }}>
-                      {nextMatch.away_team.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
+            {liveMatches.map((m, i) => (
+              <div key={m.id} style={{ borderTop: i > 0 ? '1px solid var(--line)' : 'none', paddingTop: i > 0 ? 12 : 0 }}>
+                <LiveRow m={m} />
               </div>
-            ) : (
-              /* PRE-MATCH layout */
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                    <Flag team={nextMatch.home_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
-                      {nextMatch.home_team.toUpperCase()}
-                    </span>
-                  </div>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <Flag team={nextMatch.away_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
-                      {nextMatch.away_team.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                {cd && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                    {[{ v: cd.days, l: 'DAYS' }, { v: cd.hours, l: 'HRS' }, { v: cd.mins, l: 'MIN' }, { v: cd.secs, l: 'SEC' }].map((u, i) => (
-                      <div key={i} style={{ background: i === 0 ? 'var(--yellow)' : 'var(--bg-2)', borderRadius: 'var(--r-sm)', padding: '9px 0 7px', textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'var(--display)', fontSize: 26, lineHeight: 0.95, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{String(u.v).padStart(2, '0')}</div>
-                        <div className="label" style={{ fontSize: 8.5, marginTop: 3, opacity: 0.7 }}>{u.l}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                  <span>{fmtWeekday(nextMatch.match_time)} · {fmtDateShort(nextMatch.match_time)} · {fmtTime(nextMatch.match_time)}</span>
-                </div>
-              </>
-            )}
+            ))}
 
-            {/* Next upcoming matches (2 rows) */}
-            {upNext.map((m, idx) => (
-              <div key={m.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: idx === 0 ? 4 : 0 }}>
-                <div className="label" style={{ color: 'var(--muted)', fontSize: 9, marginBottom: 6 }}>
-                  {idx === 0 ? 'UP NEXT' : 'THEN'} · {m.group_name ? `GRP ${m.group_name} · ` : ''}MD {m.matchday ?? '–'}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                    <Flag team={m.home_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em' }}>
-                      {m.home_team.toUpperCase()}
-                    </span>
-                  </div>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--muted)', letterSpacing: '-0.04em' }}>VS</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <Flag team={m.away_team} size={32} />
-                    <span style={{ fontFamily: 'var(--display)', fontSize: 15, letterSpacing: '-0.02em', textAlign: 'right' }}>
-                      {m.away_team.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>
-                  {fmtWeekday(m.match_time)} · {fmtDateShort(m.match_time)} · {fmtTime(m.match_time)}
-                </div>
+            {upcomingToShow.map((m, i) => (
+              <div key={m.id} style={{
+                borderTop: (hasLive || i > 0) ? '1px solid var(--line)' : 'none',
+                paddingTop: (hasLive || i > 0) ? 12 : 0,
+              }}>
+                <UpcomingRow
+                  m={m}
+                  label={i === 0 ? (hasLive ? 'UP NEXT' : 'NEXT KICKOFF') : 'THEN'}
+                  showCountdown={!hasLive && i === 0}
+                />
               </div>
             ))}
           </div>
@@ -576,16 +522,16 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  const upcomingMatches = useMemo(
-    () => matches
+  const { liveMatches, upcoming } = useMemo(() => {
+    const now = Date.now();
+    const open = matches
       .filter((m) => !m.finished && m.home_team !== 'TBD' && m.away_team !== 'TBD')
-      .sort((a, b) => new Date(a.match_time) - new Date(b.match_time)),
-    [matches]
-  );
-  const nextMatch      = upcomingMatches[0];
-  const isNextLive     = nextMatch && Date.now() >= new Date(nextMatch.match_time).getTime();
-  // When live: show next 2 upcoming; when not live: show next 2 upcoming (so total shown = 3)
-  const upNext         = isNextLive ? upcomingMatches.slice(1, 3) : upcomingMatches.slice(1, 3);
+      .sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
+    return {
+      liveMatches: open.filter((m) => now >= new Date(m.match_time).getTime()),
+      upcoming:    open.filter((m) => now <  new Date(m.match_time).getTime()),
+    };
+  }, [matches]);
 
   if (loading) {
     return (
@@ -597,7 +543,7 @@ export default function Home() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1100, width: '100%', margin: '0 auto' }}>
-      <Hero nextMatch={nextMatch} upNext={upNext} isNextLive={isNextLive} onNavigate={navigate} />
+      <Hero liveMatches={liveMatches} upcoming={upcoming} onNavigate={navigate} />
       <FactsRow participants={leaderboard.standings?.length ?? 0} />
       <div className="mob-1col" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
         <RecentResults matches={matches} />
