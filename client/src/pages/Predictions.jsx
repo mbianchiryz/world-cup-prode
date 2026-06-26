@@ -424,6 +424,14 @@ function BracketTile({ match, pred, onSave }) {
   const homeWin = match.finished && match.home_score > match.away_score;
   const awayWin = match.finished && match.away_score > match.home_score;
 
+  const inlineInputStyle = {
+    width: 38, height: 30, textAlign: 'center',
+    fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 15,
+    background: 'var(--bg)', border: '1.5px solid var(--line)',
+    borderRadius: 6, outline: 'none', color: 'var(--ink)',
+    flexShrink: 0,
+  };
+
   return (
     <div style={{
       background: 'var(--bg)',
@@ -444,14 +452,18 @@ function BracketTile({ match, pred, onSave }) {
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {match.home_team === 'TBD' ? '?' : match.home_team}
         </span>
-        {match.finished && (
+        {canEdit ? (
+          <input type="number" min="0" max="20" value={h}
+            onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            style={inlineInputStyle} />
+        ) : match.finished ? (
           <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: homeWin ? 'var(--ink)' : 'var(--muted)' }}>
             {match.home_score}
           </span>
-        )}
-        {!match.finished && pred?.home_score !== undefined && (
+        ) : pred?.home_score !== undefined ? (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{pred.home_score}</span>
-        )}
+        ) : null}
       </div>
 
       {/* Away row */}
@@ -464,43 +476,28 @@ function BracketTile({ match, pred, onSave }) {
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {match.away_team === 'TBD' ? '?' : match.away_team}
         </span>
-        {match.finished && (
+        {canEdit ? (
+          <input type="number" min="0" max="20" value={a}
+            onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            style={inlineInputStyle} />
+        ) : match.finished ? (
           <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: awayWin ? 'var(--ink)' : 'var(--muted)' }}>
             {match.away_score}
           </span>
-        )}
-        {!match.finished && pred?.away_score !== undefined && (
+        ) : pred?.away_score !== undefined ? (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{pred.away_score}</span>
-        )}
+        ) : null}
       </div>
 
-      {/* Quick-pick inputs */}
+      {/* Save button */}
       {canEdit && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
+          display: 'flex', alignItems: 'center',
           padding: '6px 8px',
           background: 'var(--bg-2)',
           borderTop: '1px solid var(--line)',
         }}>
-          <input type="number" min="0" max="20" value={h}
-            onChange={(e) => setH(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            style={{
-              width: 36, height: 28, textAlign: 'center',
-              fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14,
-              background: 'var(--bg)', border: '1.5px solid var(--line)',
-              borderRadius: 4, outline: 'none', color: 'var(--ink)',
-            }} />
-          <span style={{ color: 'var(--muted)', fontSize: 11 }}>–</span>
-          <input type="number" min="0" max="20" value={a}
-            onChange={(e) => setA(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            style={{
-              width: 36, height: 28, textAlign: 'center',
-              fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14,
-              background: 'var(--bg)', border: '1.5px solid var(--line)',
-              borderRadius: 4, outline: 'none', color: 'var(--ink)',
-            }} />
           <button
             onClick={handleSave}
             disabled={h === '' || a === ''}
@@ -511,7 +508,7 @@ function BracketTile({ match, pred, onSave }) {
               background: saved ? 'var(--green)' : (h === '' || a === '') ? 'var(--line)' : 'var(--ink)',
               color: saved ? '#fff' : (h === '' || a === '') ? 'var(--muted)' : 'var(--bg)',
               borderRadius: 999, fontWeight: 700, fontSize: 11,
-              padding: '5px 10px', transition: 'background .15s',
+              padding: '5px 12px', transition: 'background .15s',
             }}
           >
             {saved ? <>{CHECK_SVG} OK</> : <>Save {ARROW_SVG}</>}
