@@ -63,24 +63,20 @@ const STAGE_MAP: Record<string, string> = {
   'Final':          'final',
 };
 
+// Placeholder id ranges per knockout stage (from migration-007)
+const PLACEHOLDER_RANGE: Record<string, [number, number]> = {
+  r32:   [9000001, 9000016],
+  r16:   [9000017, 9000024],
+  qf:    [9000025, 9000028],
+  sf:    [9000029, 9000030],
+  '3rd': [9000031, 9000031],
+  final: [9000032, 9000032],
+};
+
 // @ts-expect-error — Deno global
 Deno.serve(async () => {
-  // ── 1. Check that the group stage is actually finished ───────────────────────
-  const { data: unfinished } = await supabase
-    .from('matches')
-    .select('id')
-    .eq('stage', 'group')
-    .eq('finished', false)
-    .limit(1);
-
-  if (unfinished && unfinished.length > 0) {
-    return json({
-      ok: false,
-      note: 'Group stage not finished yet — some matches still pending.',
-    }, 400);
-  }
-
-  // ── 2. Fetch knockout fixtures from api-football ─────────────────────────────
+  // ── 1. Fetch knockout fixtures from api-football (no group-stage guard —
+  //       sync progressively as cruces get confirmed) ──────────────────────────
   const rounds = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', '3rd Place Play-off', 'Final'];
   const allFixtures: any[] = [];
 
@@ -99,13 +95,13 @@ Deno.serve(async () => {
     return json({ ok: false, note: 'No knockout fixtures from api-football yet.' }, 404);
   }
 
-  // ── 3. Upsert real fixtures into matches table ───────────────────────────────
+  // ── 2. Build rows. Teams that are not yet confirmed come as null → "TBD" ──────
   const rows = allFixtures.map((f: any) => {
     const round    = f.league.round as string;
     const stage    = STAGE_MAP[round] ?? 'r32';
     const finished = ['FT','AET','PEN'].includes(f.fixture.status.short);
     let winner: string | null = null;
-    if (finished && stage !== 'group') {
+    if (finished) {
       const ph = f.score?.penalty?.home;
       const pa = f.score?.penalty?.away;
       winner = ph != null
@@ -114,10 +110,10 @@ Deno.serve(async () => {
     }
     return {
       id:           f.fixture.id,
-      home_team:    normalize(f.teams.home.name),
-      away_team:    normalize(f.teams.away.name),
-      home_team_id: f.teams.home.id,
-      away_team_id: f.teams.away.id,
+      home_team:    f.teams.home?.name ? normalize(f.teams.home.name) : 'TBD',
+      away_team:    f.teams.away?.name ? normalize(f.teams.away.name) : 'TBD',
+      home_team_id: f.teams.home?.id ?? null,
+      away_team_id: f.teams.away?.id ?? null,
       match_time:   f.fixture.date,
       stage,
       group_name:   null,
@@ -137,22 +133,31 @@ Deno.serve(async () => {
     return json({ ok: false, error: upsertErr.message }, 500);
   }
 
-  // ── 4. Delete placeholder rows ────────────────────────────────────────────────
-  const { error: delErr, count } = await supabase
-    .from('matches')
-    .delete({ count: 'exact' })
-    .gte('id', 9000001)
-    .lte('id', 9000032);
-
-  if (delErr) {
-    return json({ ok: false, error: `Upsert OK but delete failed: ${delErr.message}` }, 500);
+  // ── 3. Delete placeholders ONLY for stages api-football now provides ──────────
+  // (keeps R16+ placeholders intact if api-football hasn't created those yet)
+  const resolvedStages = [...new Set(rows.map(r => r.stage))];
+  let placeholdersDeleted = 0;
+  for (const stage of resolvedStages) {
+    const range = PLACEHOLDER_RANGE[stage];
+    if (!range) continue;
+    const { count } = await supabase
+      .from('matches')
+      .delete({ count: 'exact' })
+      .gte('id', range[0])
+      .lte('id', range[1]);
+    placeholdersDeleted += count ?? 0;
   }
 
+  // Summary: confirmed = both teams known, pending = at least one TBD
+  const confirmed = rows.filter(r => r.home_team !== 'TBD' && r.away_team !== 'TBD');
   return json({
-    ok:               true,
-    fixtures_upserted: rows.length,
-    placeholders_deleted: count ?? 0,
-    rounds_resolved:  [...new Set(rows.map(r => r.stage))],
+    ok:                   true,
+    fixtures_upserted:    rows.length,
+    confirmed_matchups:   confirmed.length,
+    pending_tbd:          rows.length - confirmed.length,
+    placeholders_deleted: placeholdersDeleted,
+    rounds_resolved:      resolvedStages,
+    confirmed_list:       confirmed.map(r => `${r.home_team} vs ${r.away_team}`),
   });
 });
 
