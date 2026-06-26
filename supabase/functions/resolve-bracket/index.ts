@@ -73,6 +73,33 @@ const PLACEHOLDER_RANGE: Record<string, [number, number]> = {
   final: [9000032, 9000032],
 };
 
+// Fixed number of matches per knockout stage — the bracket always shows this
+// many slots; unconfirmed ones are filled with generic TBD placeholders.
+const STAGE_EXPECTED: Record<string, number> = {
+  r32: 16, r16: 8, qf: 4, sf: 2, '3rd': 1, final: 1,
+};
+
+// Scheduled kickoff times per stage (from the official FIFA WC 2026 calendar,
+// migration-007). Used for placeholder rows so the bracket sorts sensibly.
+const STAGE_TIMES: Record<string, string[]> = {
+  r32: [
+    '2026-06-29T16:00:00Z','2026-06-29T20:00:00Z','2026-06-30T16:00:00Z','2026-06-30T20:00:00Z',
+    '2026-07-01T16:00:00Z','2026-07-01T20:00:00Z','2026-07-02T16:00:00Z','2026-07-02T20:00:00Z',
+    '2026-07-03T16:00:00Z','2026-07-03T20:00:00Z','2026-07-04T00:00:00Z','2026-07-04T04:00:00Z',
+    '2026-07-04T16:00:00Z','2026-07-04T20:00:00Z','2026-07-05T00:00:00Z','2026-07-05T04:00:00Z',
+  ],
+  r16: [
+    '2026-07-05T16:00:00Z','2026-07-05T20:00:00Z','2026-07-06T16:00:00Z','2026-07-06T20:00:00Z',
+    '2026-07-07T16:00:00Z','2026-07-07T20:00:00Z','2026-07-08T16:00:00Z','2026-07-08T20:00:00Z',
+  ],
+  qf: [
+    '2026-07-10T16:00:00Z','2026-07-10T20:00:00Z','2026-07-11T16:00:00Z','2026-07-11T20:00:00Z',
+  ],
+  sf:    ['2026-07-14T20:00:00Z','2026-07-15T20:00:00Z'],
+  '3rd': ['2026-07-18T20:00:00Z'],
+  final: ['2026-07-19T20:00:00Z'],
+};
+
 // @ts-expect-error — Deno global
 Deno.serve(async () => {
   // ── 1. Fetch knockout fixtures from api-football (no group-stage guard —
@@ -133,19 +160,41 @@ Deno.serve(async () => {
     return json({ ok: false, error: upsertErr.message }, 500);
   }
 
-  // ── 3. Delete placeholders ONLY for stages api-football now provides ──────────
-  // (keeps R16+ placeholders intact if api-football hasn't created those yet)
-  const resolvedStages = [...new Set(rows.map(r => r.stage))];
-  let placeholdersDeleted = 0;
-  for (const stage of resolvedStages) {
-    const range = PLACEHOLDER_RANGE[stage];
-    if (!range) continue;
-    const { count } = await supabase
-      .from('matches')
-      .delete({ count: 'exact' })
-      .gte('id', range[0])
-      .lte('id', range[1]);
-    placeholdersDeleted += count ?? 0;
+  // ── 3. Keep every stage at its full slot count ───────────────────────────────
+  // Real fixtures (real api-football ids) fill some slots; the rest are kept as
+  // generic "TBD vs TBD" placeholders so the bracket view is never broken and
+  // matchups appear progressively as api-football confirms them.
+  let placeholdersWritten = 0;
+  for (const stage of Object.keys(STAGE_EXPECTED)) {
+    const range     = PLACEHOLDER_RANGE[stage];
+    const expected  = STAGE_EXPECTED[stage];
+    const realCount = rows.filter(r => r.stage === stage).length;
+    const needed    = Math.max(0, expected - realCount);
+
+    // Wipe this stage's placeholders, then re-create exactly `needed` of them.
+    await supabase.from('matches').delete().gte('id', range[0]).lte('id', range[1]);
+
+    if (needed > 0) {
+      const times = STAGE_TIMES[stage] ?? [];
+      const placeholders = Array.from({ length: needed }, (_, i) => ({
+        id:         range[0] + i,
+        home_team:  'TBD',
+        away_team:  'TBD',
+        // take the LAST `needed` time slots so earlier (already-confirmed) real
+        // matches keep the earlier slots
+        match_time: times[times.length - needed + i] ?? times[i] ?? times[times.length - 1] ?? null,
+        stage,
+        group_name: null,
+        matchday:   null,
+        finished:   false,
+        home_score: null,
+        away_score: null,
+        winner:     null,
+      }));
+      const { error: phErr } = await supabase.from('matches').upsert(placeholders, { onConflict: 'id' });
+      if (phErr) return json({ ok: false, error: phErr.message, where: 'placeholders' }, 500);
+      placeholdersWritten += needed;
+    }
   }
 
   // Summary: confirmed = both teams known, pending = at least one TBD
@@ -155,8 +204,7 @@ Deno.serve(async () => {
     fixtures_upserted:    rows.length,
     confirmed_matchups:   confirmed.length,
     pending_tbd:          rows.length - confirmed.length,
-    placeholders_deleted: placeholdersDeleted,
-    rounds_resolved:      resolvedStages,
+    placeholders_written: placeholdersWritten,
     confirmed_list:       confirmed.map(r => `${r.home_team} vs ${r.away_team}`),
   });
 });
