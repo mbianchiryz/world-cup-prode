@@ -786,11 +786,10 @@ function EmptyState({ pendingOnly }) {
 
 // ── Knockout section ──────────────────────────────────────────────────────────
 function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll }) {
-  const [view, setView] = useState('r32');
+  const [view, setView] = useState('bracket');
 
-  // The full bracket tree is hidden until every knockout match is decided —
-  // with most slots still TBD it just looks broken. Show per-round tabs instead.
   const viewOptions = [
+    { value: 'bracket', label: '🏆 Bracket'      },
     { value: 'r32',     label: 'Round of 32'     },
     { value: 'r16',     label: 'Round of 16'     },
     { value: 'qf',      label: 'Quarter-finals'  },
