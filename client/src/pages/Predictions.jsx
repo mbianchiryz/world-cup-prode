@@ -25,7 +25,8 @@ class SectionErrorBoundary extends React.Component {
 }
 import { getFlag, getAbbr, getTeamGroup } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
-import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats } from '@/lib/supabase-db';
+import { getMatches, getMyPredictions, savePrediction, getChampionData, saveChampionPick, getChampionPickStats, getGroupStandings } from '@/lib/supabase-db';
+import { R32 } from '@/lib/bracket-data';
 import { calcMatchPoints } from '@/lib/scoring';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -551,6 +552,61 @@ function BracketTile({ match, pred, onSave }) {
   );
 }
 
+// ── Bracket ordering ──────────────────────────────────────────────────────────
+// Orders knockout matches by their position in the OFFICIAL bracket (not by
+// kickoff time), so the tree is drawn structurally. Every knockout team played
+// exactly one R32 match, so ordering ANY round by the smallest R32-slot among
+// its teams reproduces the real top-to-bottom bracket order.
+function buildBracketOrder(matches, standings) {
+  // descriptor ("1st E", "2nd A"…) → R32 slot index 0..15 (fixed positions only —
+  // every R32 slot has at least one, and each is unique, so no 3rd-place guessing)
+  const descSlot = {};
+  R32.forEach((slot, i) => {
+    [slot.home, slot.away].forEach((d) => {
+      if (/^(1st|2nd)\s/.test(d)) descSlot[d] = i;
+    });
+  });
+  // team → descriptor, from final group standings (rank 0 = 1st, 1 = 2nd)
+  const teamDesc = {};
+  (standings || []).forEach(({ letter, standings: rows }) => {
+    if (rows?.[0]) teamDesc[rows[0].team] = `1st ${letter}`;
+    if (rows?.[1]) teamDesc[rows[1].team] = `2nd ${letter}`;
+  });
+  // team → R32 slot: assign each R32 match's slot to BOTH its teams (covers thirds)
+  const teamSlot = {};
+  (matches || []).filter((m) => m && m.stage === 'r32').forEach((m) => {
+    let slot;
+    [m.home_team, m.away_team].forEach((t) => {
+      const d = teamDesc[t];
+      if (d != null && descSlot[d] != null) slot = descSlot[d];
+    });
+    if (slot != null) {
+      teamSlot[m.home_team] = slot;
+      teamSlot[m.away_team] = slot;
+    }
+  });
+  // order key per match = min traceable R32 slot among its teams (null if none)
+  const order = {};
+  (matches || []).forEach((m) => {
+    if (!m) return;
+    const slots = [m.home_team, m.away_team].map((t) => teamSlot[t]).filter((s) => s != null);
+    order[m.id] = slots.length ? Math.min(...slots) : null;
+  });
+  return order;
+}
+
+// Comparator: structural bracket order, falling back to kickoff time when a
+// match can't be placed yet (e.g. all teams still TBD).
+function bracketSort(order) {
+  return (a, b) => {
+    const ka = order[a.id], kb = order[b.id];
+    if (ka != null && kb != null && ka !== kb) return ka - kb;
+    if (ka != null && kb == null) return -1;
+    if (ka == null && kb != null) return 1;
+    return new Date(a.match_time) - new Date(b.match_time);
+  };
+}
+
 // ── Bracket view ──────────────────────────────────────────────────────────────
 const MAIN_ROUNDS = [
   { key: 'r32', label: 'Round of 32',    stage: 'r32' },
@@ -559,9 +615,13 @@ const MAIN_ROUNDS = [
   { key: 'sf',  label: 'Semi-finals',    stage: 'sf'  },
 ];
 
-function BracketView({ matches, preds, onSave }) {
+function BracketView({ matches, preds, onSave, standings }) {
   const finalMatch = matches.find((m) => m.stage === 'final');
   const thirdMatch = matches.find((m) => m.stage === '3rd');
+
+  // Structural bracket order (falls back to kickoff time per match)
+  const order = useMemo(() => buildBracketOrder(matches, standings), [matches, standings]);
+  const sortBracket = bracketSort(order);
 
   // Height scales with the largest round (R32 = 16 matches)
   const maxRoundSize = Math.max(
@@ -576,7 +636,7 @@ function BracketView({ matches, preds, onSave }) {
       {MAIN_ROUNDS.map((round) => {
         const roundMatches = matches
           .filter((m) => m.stage === round.stage)
-          .sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
+          .sort(sortBracket);
         if (!roundMatches.length) return null;
         return (
           <section key={round.key}>
@@ -617,7 +677,7 @@ function BracketView({ matches, preds, onSave }) {
         {MAIN_ROUNDS.map((round) => {
           const roundMatches = matches
             .filter((m) => m.stage === round.stage)
-            .sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
+            .sort(sortBracket);
           return (
             <div key={round.key} className="flex flex-col flex-1 min-w-[180px]">
               <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
@@ -810,7 +870,7 @@ function EmptyState({ pendingOnly }) {
 }
 
 // ── Knockout section ──────────────────────────────────────────────────────────
-function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll }) {
+function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll, standings }) {
   const [view, setView] = useState('bracket');
 
   const viewOptions = [
@@ -840,7 +900,7 @@ function KnockoutSection({ matches, preds, onSave, pendingOnly, syncAll }) {
       {pendingOnly && knockoutMatches.length === 0 ? (
         <EmptyState pendingOnly />
       ) : view === 'bracket' ? (
-        <BracketView matches={knockoutMatches} preds={preds} onSave={onSave} />
+        <BracketView matches={knockoutMatches} preds={preds} onSave={onSave} standings={standings} />
       ) : view === 'finals' ? (
         /* Finals view: Final + 3rd place with distinct labels */
         <div className="grid gap-6 sm:grid-cols-2">
@@ -1133,6 +1193,7 @@ export default function Predictions() {
   const [matches, setMatches] = useState([]);
   const [preds, setPreds]     = useState({});
   const [champ, setChamp]     = useState(null);
+  const [standings, setStandings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState('group');
   const [pendingOnly, setPendingOnly] = useState(false);
@@ -1142,10 +1203,11 @@ export default function Predictions() {
   const loadAll = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
     try {
-      const [ms, predictions, champData] = await Promise.all([
+      const [ms, predictions, champData, groupStandings] = await Promise.all([
         getMatches(),
         getMyPredictions(),
         getChampionData(),
+        getGroupStandings().catch(() => []),
       ]);
       // Derive group_name from team names when DB has it as null
       const enriched = (ms || []).map((m) => {
@@ -1161,6 +1223,7 @@ export default function Predictions() {
       for (const p of (predictions || [])) if (p) map[p.match_id] = p;
       setPreds(map);
       setChamp(champData);
+      setStandings(groupStandings || []);
 
     } catch (err) {
       // Swallow network/auth errors on background refreshes — keep stale data
@@ -1301,7 +1364,7 @@ export default function Predictions() {
       )}
       {section === 'knockout' && (
         <SectionErrorBoundary key="knockout">
-          <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} syncAll={syncAll} />
+          <KnockoutSection matches={matches} preds={preds} onSave={savePred} pendingOnly={pendingOnly} syncAll={syncAll} standings={standings} />
         </SectionErrorBoundary>
       )}
       {section === 'champion' && champ && (
