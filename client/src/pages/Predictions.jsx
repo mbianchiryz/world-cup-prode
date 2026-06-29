@@ -516,10 +516,35 @@ function BracketTile({ match, pred, onSave }) {
         </div>
       )}
 
-      {/* Status strip */}
+      {/* Footer: finished → your pick + points earned; locked → countdown */}
       {!canEdit && !isTBD && (
         <div style={{ borderTop: '1px solid var(--line)', padding: '6px 10px', background: 'var(--bg-2)' }}>
-          <CountdownBadge matchTime={match.match_time} finished={match.finished} />
+          {match.finished && pred?.home_score != null ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>TU PICK</span>
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 12, color: 'var(--ink)' }}>
+                {pred.home_score}–{pred.away_score}
+              </span>
+              {(() => {
+                const pts = calcMatchPoints(pred, match);
+                const color = pts === 7 ? 'var(--green)' : pts >= 5 ? 'var(--cyan)' : pts >= 3 ? 'var(--blue)' : pts >= 2 ? 'var(--orange)' : 'var(--muted)';
+                return (
+                  <span style={{
+                    fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10,
+                    background: pts > 0 ? color : 'var(--line)',
+                    color: pts > 0 ? '#fff' : 'var(--muted)',
+                    borderRadius: 999, padding: '2px 8px', marginLeft: 'auto',
+                  }}>
+                    {pts > 0 ? `+${pts}` : '0'} pts
+                  </span>
+                );
+              })()}
+            </div>
+          ) : match.finished ? (
+            <span className="label" style={{ color: 'var(--muted)', fontSize: 9 }}>SIN PICK · FINAL</span>
+          ) : (
+            <CountdownBadge matchTime={match.match_time} finished={match.finished} />
+          )}
         </div>
       )}
     </div>
