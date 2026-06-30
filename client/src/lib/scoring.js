@@ -14,12 +14,10 @@ export function isCorrectResult(pred, match) {
   const rh = Number(match.home_score);
   const ra = Number(match.away_score);
   const predDir = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
+  // Result is the score after 90' (or 120' if extra time) — penalties do NOT
+  // count, so a knockout tie decided on penalties is scored as a draw.
   const realDir  = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
-  // For knockout, respect the 'winner' override (extra time / penalties)
-  const effectiveReal = match.stage !== 'group' && match.winner
-    ? (match.winner === 'home' ? 'W' : 'L')
-    : realDir;
-  return predDir === effectiveReal;
+  return predDir === realDir;
 }
 
 export function calcMatchPoints(pred, match) {
@@ -31,14 +29,11 @@ export function calcMatchPoints(pred, match) {
   const ra = Number(match.away_score);
 
   const predResult = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
+  // Result is the score after 90' (or 120' if extra time) — penalties do NOT
+  // count, so a knockout tie decided on penalties is scored as a draw.
   const realResult = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
 
-  const realWinner = match.winner
-    ? match.winner === 'home' ? 'W' : 'L'
-    : realResult;
-  const effectiveReal = match.stage !== 'group' ? realWinner : realResult;
-
-  const correctResult = predResult === effectiveReal;
+  const correctResult = predResult === realResult;
   const exactHome     = ph === rh;
   const exactAway     = pa === ra;
 
