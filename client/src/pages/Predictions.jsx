@@ -595,33 +595,43 @@ function buildBracketOrder(matches, standings) {
   return order;
 }
 
-// Comparator: structural bracket order, falling back to kickoff time when a
-// match can't be placed yet (e.g. all teams still TBD).
-function bracketSort(order) {
-  return (a, b) => {
-    const ka = order[a.id], kb = order[b.id];
-    if (ka != null && kb != null && ka !== kb) return ka - kb;
-    if (ka != null && kb == null) return -1;
-    if (ka == null && kb != null) return 1;
-    return new Date(a.match_time) - new Date(b.match_time);
-  };
+// Arrange a round's matches into their exact bracket positions (0..size-1) so
+// each tile lines up vertically with its two feeder matches. A match's position
+// is derived from the smallest R32 slot among its teams; TBD placeholders (no
+// traceable slot) fill the remaining gaps, keeping the column full and aligned.
+function arrangeRound(roundMatches, size, level, order) {
+  const slots = new Array(size).fill(null);
+  const leftovers = [];
+  const byTime = [...roundMatches].sort(
+    (a, b) => new Date(a.match_time) - new Date(b.match_time)
+  );
+  for (const m of byTime) {
+    const key = order[m.id];
+    const pos = key != null ? Math.floor(key / Math.pow(2, level)) : null;
+    if (pos != null && pos >= 0 && pos < size && slots[pos] == null) slots[pos] = m;
+    else leftovers.push(m);
+  }
+  let li = 0;
+  for (let i = 0; i < size && li < leftovers.length; i++) {
+    if (slots[i] == null) slots[i] = leftovers[li++];
+  }
+  return slots.filter(Boolean);
 }
 
 // ── Bracket view ──────────────────────────────────────────────────────────────
 const MAIN_ROUNDS = [
-  { key: 'r32', label: 'Round of 32',    stage: 'r32' },
-  { key: 'r16', label: 'Round of 16',    stage: 'r16' },
-  { key: 'qf',  label: 'Quarter-finals', stage: 'qf'  },
-  { key: 'sf',  label: 'Semi-finals',    stage: 'sf'  },
+  { key: 'r32', label: 'Round of 32',    stage: 'r32', size: 16, level: 0 },
+  { key: 'r16', label: 'Round of 16',    stage: 'r16', size: 8,  level: 1 },
+  { key: 'qf',  label: 'Quarter-finals', stage: 'qf',  size: 4,  level: 2 },
+  { key: 'sf',  label: 'Semi-finals',    stage: 'sf',  size: 2,  level: 3 },
 ];
 
 function BracketView({ matches, preds, onSave, standings }) {
   const finalMatch = matches.find((m) => m.stage === 'final');
   const thirdMatch = matches.find((m) => m.stage === '3rd');
 
-  // Structural bracket order (falls back to kickoff time per match)
+  // Structural bracket position per match (min R32 slot among its teams)
   const order = useMemo(() => buildBracketOrder(matches, standings), [matches, standings]);
-  const sortBracket = bracketSort(order);
 
   // Height scales with the largest round (R32 = 16 matches)
   const maxRoundSize = Math.max(
@@ -634,9 +644,10 @@ function BracketView({ matches, preds, onSave, standings }) {
   const mobileBracket = (
     <div className="md:hidden space-y-5">
       {MAIN_ROUNDS.map((round) => {
-        const roundMatches = matches
-          .filter((m) => m.stage === round.stage)
-          .sort(sortBracket);
+        const roundMatches = arrangeRound(
+          matches.filter((m) => m.stage === round.stage),
+          round.size, round.level, order
+        );
         if (!roundMatches.length) return null;
         return (
           <section key={round.key}>
@@ -675,9 +686,10 @@ function BracketView({ matches, preds, onSave, standings }) {
     <div className="hidden md:block overflow-x-auto pb-4 -mx-1 px-1">
       <div className="flex gap-3 items-stretch" style={{ minHeight: `${bracketMinHeight}px`, minWidth: '960px' }}>
         {MAIN_ROUNDS.map((round) => {
-          const roundMatches = matches
-            .filter((m) => m.stage === round.stage)
-            .sort(sortBracket);
+          const roundMatches = arrangeRound(
+            matches.filter((m) => m.stage === round.stage),
+            round.size, round.level, order
+          );
           return (
             <div key={round.key} className="flex flex-col flex-1 min-w-[180px]">
               <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
