@@ -695,9 +695,14 @@ function BracketView({ matches, preds, onSave, standings }) {
               <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pb-2 border-b mb-3">
                 {round.label}
               </div>
-              <div className="flex-1 flex flex-col justify-around gap-2">
+              {/* Each match sits in an equal-height row, centered — so a tile
+                  aligns with the midpoint of its two feeder matches one column
+                  to the left, regardless of tile height. */}
+              <div className="flex-1 flex flex-col">
                 {roundMatches.map((m) => (
-                  <BracketTile key={m.id} match={m} pred={preds[m.id]} onSave={onSave} />
+                  <div key={m.id} className="flex-1 flex items-center justify-center py-1">
+                    <div className="w-full"><BracketTile match={m} pred={preds[m.id]} onSave={onSave} /></div>
+                  </div>
                 ))}
               </div>
             </div>
