@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { getFlag, getAbbr } from '@/lib/matches-data';
 import Flag from '@/components/Flag';
-import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings, getThirdPlaceRanking } from '@/lib/supabase-db';
+import { getLeaderboard, getUserPicks, getBracketLeaderboard, getGroupStandings, getThirdPlaceRanking, getMatches } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase';
-import { calcBracketScore } from '@/lib/bracket-data';
+import { calcBracketScore, buildKnockoutResults } from '@/lib/bracket-data';
 
 const CLOSE = (
   <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -634,6 +634,7 @@ export default function Leaderboard() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [actualStandings, setActualStandings]   = useState({});
   const [actualThirdRank, setActualThirdRank]   = useState([]);
+  const [actualKnockout, setActualKnockout]     = useState({});
   const [showScoring, setShowScoring]           = useState(false);
 
   useEffect(() => {
@@ -645,13 +646,14 @@ export default function Leaderboard() {
     }).catch(() => {});
     // Load live group standings + best-3rds ranking for bracket scoring
     function loadStandings() {
-      Promise.all([getGroupStandings(), getThirdPlaceRanking()]).then(([groups, thirds]) => {
+      Promise.all([getGroupStandings(), getThirdPlaceRanking(), getMatches()]).then(([groups, thirds, ms]) => {
         const map = {};
         for (const { letter, standings } of groups) {
           map[letter] = standings.map(s => s.team);
         }
         setActualStandings(map);
         setActualThirdRank(thirds);
+        setActualKnockout(buildKnockoutResults(ms || [], map));
       }).catch(() => {});
     }
     loadStandings();
@@ -675,8 +677,8 @@ export default function Leaderboard() {
   const actualForScoring = useMemo(() => ({
     groupStandings:  tournamentStarted ? actualStandings : {},
     thirdQualifiers: tournamentStarted ? actualThirdRank : [],
-    knockoutResults: {},
-  }), [actualStandings, actualThirdRank, tournamentStarted]);
+    knockoutResults: tournamentStarted ? actualKnockout : {},
+  }), [actualStandings, actualThirdRank, actualKnockout, tournamentStarted]);
 
   const scoredBracketData = useMemo(() =>
     bracketData.map(b => ({

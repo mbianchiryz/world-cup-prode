@@ -249,3 +249,57 @@ export function calcBracketScore(userBracket, actual) {
 
   return { total: groups + thirds + knockout, breakdown: { groups, thirds, knockout } };
 }
+
+// Build the "actual" knockout results per bracket slot (r32_1…final) from the
+// real matches table, so the Bracket Challenge can score knockout picks.
+//   `matches`   — rows from the matches table (need stage, winner, home/away_team, finished)
+//   `standings` — map { A: [team1,team2,team3,team4], … } in final rank order
+// Winner INCLUDES penalties (who actually advanced) — that's what the pick is.
+export function buildKnockoutResults(matches, standings) {
+  const results = {};
+  if (!matches || !matches.length) return results;
+
+  // descriptor ("1st E"/"2nd A") → R32 slot index 0..15 (fixed positions only)
+  const descSlot = {};
+  R32.forEach((slot, i) => {
+    [slot.home, slot.away].forEach((d) => {
+      if (/^(1st|2nd)\s/.test(d)) descSlot[d] = i;
+    });
+  });
+  // team → descriptor from final group standings (rank 0 = 1st, 1 = 2nd)
+  const teamDesc = {};
+  Object.entries(standings || {}).forEach(([letter, teams]) => {
+    if (teams?.[0]) teamDesc[teams[0]] = `1st ${letter}`;
+    if (teams?.[1]) teamDesc[teams[1]] = `2nd ${letter}`;
+  });
+  // team → R32 slot: assign each R32 match's slot to BOTH its teams (covers thirds)
+  const teamSlot = {};
+  matches.filter((m) => m && m.stage === 'r32').forEach((m) => {
+    let slot;
+    [m.home_team, m.away_team].forEach((t) => {
+      const d = teamDesc[t];
+      if (d != null && descSlot[d] != null) slot = descSlot[d];
+    });
+    if (slot != null) {
+      teamSlot[m.home_team] = slot;
+      teamSlot[m.away_team] = slot;
+    }
+  });
+
+  const LEVEL = { r32: 0, r16: 1, qf: 2, sf: 3, final: 4 };
+  for (const m of matches) {
+    if (!m || !m.finished) continue;
+    const lvl = LEVEL[m.stage];
+    if (lvl == null) continue; // skip group stage + 3rd-place playoff
+    const winnerTeam = m.winner === 'home' ? m.home_team
+                     : m.winner === 'away' ? m.away_team
+                     : null;
+    if (!winnerTeam) continue;
+    if (m.stage === 'final') { results.final = winnerTeam; continue; }
+    const slots = [m.home_team, m.away_team].map((t) => teamSlot[t]).filter((s) => s != null);
+    if (!slots.length) continue;
+    const pos = Math.floor(Math.min(...slots) / Math.pow(2, lvl));
+    results[`${m.stage}_${pos + 1}`] = winnerTeam;
+  }
+  return results;
+}
