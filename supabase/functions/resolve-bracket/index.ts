@@ -60,6 +60,7 @@ const STAGE_MAP: Record<string, string> = {
   'Quarter-finals': 'qf',
   'Semi-finals':    'sf',
   '3rd Place Play-off': '3rd',
+  '3rd Place Final':    '3rd',
   'Final':          'final',
 };
 
@@ -104,7 +105,7 @@ const STAGE_TIMES: Record<string, string[]> = {
 Deno.serve(async () => {
   // ── 1. Fetch knockout fixtures from api-football (no group-stage guard —
   //       sync progressively as cruces get confirmed) ──────────────────────────
-  const rounds = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', '3rd Place Play-off', 'Final'];
+  const rounds = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', '3rd Place Play-off', '3rd Place Final', 'Final'];
   const allFixtures: any[] = [];
 
   for (const round of rounds) {
